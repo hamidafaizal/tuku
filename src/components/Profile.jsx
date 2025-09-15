@@ -1,16 +1,16 @@
 import { X } from 'lucide-react';
 
-export default function Sidebar({ open = false, onNavigate = () => {}, onClose = () => {} }) {
+// Komponen Profile, disalin dari Sidebar.jsx
+export default function Profile({ open = false, onNavigate = () => {}, onClose = () => {} }) {
+  // Menu spesifik untuk Profile
   const menus = [
-    { key: "dashboard", label: "Dashboard" },
-    { key: "keuangan", label: "Keuangan" },
-    { key: "gudang", label: "Gudang" },
-    { key: "pengaturan", label: "Pengaturan" },
+    { key: "pengaturan-akun", label: "Pengaturan Akun" },
+    { key: "keluar", label: "Keluar" },
   ];
 
   return (
     <>
-      {/* Overlay untuk menutup sidebar saat diklik di luar area */}
+      {/* Overlay */}
       <div
         className={
           "fixed inset-0 bg-black/30 z-30 transition-opacity duration-200 " +
@@ -20,19 +20,19 @@ export default function Sidebar({ open = false, onNavigate = () => {}, onClose =
         aria-hidden="true"
       ></div>
 
-      {/* Konten Sidebar */}
+      {/* Konten Panel Profil, muncul dari kanan */}
       <aside
         className={
-          "fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-slate-200 " +
+          "fixed inset-y-0 right-0 z-40 w-72 bg-white border-l border-slate-200 " + // diubah ke right-0 dan border-l
           "transition-transform duration-200 " +
-          (open ? "translate-x-0" : "-translate-x-full")
+          (open ? "translate-x-0" : "translate-x-full") // diubah ke translate-x-full
         }
-        aria-label="Sidebar"
+        aria-label="Profile"
       >
-        {/* Header Sidebar dengan Tombol Tutup */}
+        {/* Header, sama seperti Sidebar */}
         <div className="h-14 border-b border-slate-200 flex items-center justify-between px-4">
-          <span className="font-semibold text-slate-800">Menu</span>
-          <button
+          <span className="font-semibold text-slate-800">Profil</span>
+           <button
             onClick={onClose}
             type="button"
             aria-label="Close menu"
@@ -43,12 +43,13 @@ export default function Sidebar({ open = false, onNavigate = () => {}, onClose =
           </button>
         </div>
 
+        {/* Navigasi, sama seperti Sidebar */}
         <nav className="p-3 space-y-2" role="navigation">
           {menus.map((m) => (
             <button
               key={m.key}
               type="button"
-              className="btn w-full justify-start"
+              className={`btn w-full justify-start ${m.key === 'keluar' ? 'text-rose-600 hover:bg-rose-50' : ''}`}
               onClick={() => onNavigate(m.key)}
             >
               {m.label}
