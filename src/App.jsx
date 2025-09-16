@@ -1,19 +1,14 @@
-import Header from './components/Header.jsx';
+import { useMode } from '/src/context/ModeContext.jsx';
+import OwnerLayout from '/src/layouts/OwnerLayout.jsx';
+import CashierLayout from '/src/layouts/CashierLayout.jsx';
 
 export default function App() {
-  return (
-    <div className="app-shell">
-      <Header />
-      
-      {/* Konten Utama Aplikasi */}
-      <main>
-        <div className="container-app py-4 md:py-6">
-          {/* Konten halaman akan ditampilkan di sini */}
-          <h2>Dashboard</h2>
-          <p className='muted'>Selamat datang di aplikasi Tuku.</p>
-        </div>
-      </main>
-    </div>
-  );
+  // Mengambil state mode global dari context
+  const { isOwnerMode } = useMode();
+  console.log('App is selecting layout, isOwnerMode:', isOwnerMode);
+
+  // Render layout yang sesuai berdasarkan mode yang aktif.
+  // Jika isOwnerMode true, tampilkan OwnerLayout, jika false, tampilkan CashierLayout.
+  return isOwnerMode ? <OwnerLayout /> : <CashierLayout />;
 }
 

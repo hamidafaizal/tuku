@@ -1,15 +1,25 @@
 import { useState } from 'react';
 import { Menu, User } from 'lucide-react';
 import Sidebar from '/src/components/Sidebar.jsx';
+import ProfileSidebar from '/src/components/ProfileSidebar.jsx';
 
-export default function Header() {
+// Komponen Header sekarang menerima prop `showMenuButton`
+export default function Header({ showMenuButton = true }) {
   // State untuk sidebar menu utama
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // State untuk sidebar profil
+  const [profileSidebarOpen, setProfileSidebarOpen] = useState(false);
 
   // Fungsi untuk toggle sidebar utama
   const handleMenuClick = () => {
     console.log('Sidebar toggled from Header');
     setSidebarOpen(!sidebarOpen);
+  };
+  
+  // Fungsi untuk toggle sidebar profil
+  const handleProfileClick = () => {
+    console.log('Profile sidebar toggled from Header');
+    setProfileSidebarOpen(!profileSidebarOpen);
   };
 
   // Fungsi untuk navigasi dari sidebar utama
@@ -18,22 +28,26 @@ export default function Header() {
     setSidebarOpen(false); 
   };
   
-  // Fungsi handleProfileClick dan state profileOpen telah dihapus
-
   return (
     <>
       <header className="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
         <div className="container-app h-14 flex items-center justify-between">
-          {/* Tombol Hamburger */}
-          <button
-            onClick={handleMenuClick}
-            type="button"
-            aria-label="Open menu"
-            className="icon-btn hover:bg-sky-50"
-            title="Menu"
-          >
-            <Menu className="w-5 h-5 text-slate-700" />
-          </button>
+          
+          {/* Tombol Hamburger hanya ditampilkan jika showMenuButton adalah true */}
+          {showMenuButton ? (
+            <button
+              onClick={handleMenuClick}
+              type="button"
+              aria-label="Open menu"
+              className="icon-btn hover:bg-sky-50"
+              title="Menu"
+            >
+              <Menu className="w-5 h-5 text-slate-700" />
+            </button>
+          ) : (
+            // Placeholder untuk menjaga layout tetap simetris
+            <div className="w-9 h-9"></div>
+          )}
 
           {/* Judul */}
           <div className="flex-1 flex items-center justify-center pointer-events-none">
@@ -41,9 +55,9 @@ export default function Header() {
           </div>
 
           {/* Wrapper untuk Tombol Avatar dan Menu Profil */}
-          {/* Komponen Profile dan logikanya telah dihapus */}
           <div className="relative">
             <button
+              onClick={handleProfileClick}
               type="button"
               aria-label="Open profile"
               className="icon-btn hover:bg-sky-50"
@@ -63,6 +77,13 @@ export default function Header() {
         onNavigate={handleNavigate} 
         onClose={() => setSidebarOpen(false)} 
       />
+      
+      {/* Render Sidebar Profil */}
+      <ProfileSidebar 
+        open={profileSidebarOpen}
+        onClose={() => setProfileSidebarOpen(false)}
+      />
     </>
   );
 }
+
