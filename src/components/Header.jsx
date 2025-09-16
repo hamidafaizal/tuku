@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { Menu, User } from 'lucide-react';
 import Sidebar from '/src/components/Sidebar.jsx';
-import Profile from './Profile.jsx'; // Impor komponen Profile
 
 export default function Header() {
   // State untuk sidebar menu utama
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // State untuk menu profil
-  const [profileOpen, setProfileOpen] = useState(false);
 
   // Fungsi untuk toggle sidebar utama
   const handleMenuClick = () => {
@@ -21,11 +18,7 @@ export default function Header() {
     setSidebarOpen(false); 
   };
   
-  // Fungsi untuk toggle menu profil
-  const handleProfileClick = () => {
-    console.log('Profile menu toggled');
-    setProfileOpen(!profileOpen);
-  };
+  // Fungsi handleProfileClick dan state profileOpen telah dihapus
 
   return (
     <>
@@ -48,9 +41,9 @@ export default function Header() {
           </div>
 
           {/* Wrapper untuk Tombol Avatar dan Menu Profil */}
+          {/* Komponen Profile dan logikanya telah dihapus */}
           <div className="relative">
             <button
-              onClick={handleProfileClick}
               type="button"
               aria-label="Open profile"
               className="icon-btn hover:bg-sky-50"
@@ -60,12 +53,6 @@ export default function Header() {
                 <User className="w-4 h-4 text-sky-700" />
               </div>
             </button>
-            
-            {/* Render Menu Profil di sini */}
-            <Profile 
-              open={profileOpen}
-              onClose={() => setProfileOpen(false)}
-            />
           </div>
         </div>
       </header>
@@ -79,4 +66,3 @@ export default function Header() {
     </>
   );
 }
-
