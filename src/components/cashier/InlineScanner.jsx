@@ -5,7 +5,6 @@ export default function InlineScanner({ onScanSuccess }) {
   const scannerRef = useRef(null); // Ref untuk instance scanner
 
   useEffect(() => {
-    // Memeriksa apakah library sudah dimuat oleh browser
     if (!window.Html5Qrcode) {
       console.error("Library Html5Qrcode belum termuat.");
       return;
@@ -17,38 +16,45 @@ export default function InlineScanner({ onScanSuccess }) {
     };
     
     const handleScanFailure = (error) => {
-      // Mengabaikan error umum "not found" agar console tidak penuh
+      // Mengabaikan error umum 'not found'
     };
 
-    // Konfigurasi untuk scanner, frame putih tetap kecil
+    // Konfigurasi scanner dengan area pindai yang lebih pas untuk view kecil
     const config = {
       fps: 10,
-      qrbox: { width: 200, height: 80 }, 
+      qrbox: { width: 180, height: 60 }, 
     };
 
-    // Inisialisasi scanner pada elemen dengan ID 'inline-camera-reader'
     const html5QrCode = new window.Html5Qrcode("inline-camera-reader");
     scannerRef.current = html5QrCode;
     
-    // Memulai kamera dengan preferensi kamera belakang
     html5QrCode.start(
       { facingMode: "environment" },
       config,
       handleScanSuccess,
       handleScanFailure
-    ).catch(err => {
+    ).then(() => {
+      // SOLUSI UTAMA: Dijalankan setelah kamera berhasil dimulai
+      console.log('Kamera berhasil dimulai, mengubah style video...');
+      const videoElement = document.querySelector('#inline-camera-reader video');
+      
+      if (videoElement) {
+        // Memaksa elemen video untuk mengisi kontainer kecil kita
+        videoElement.style.width = '100%';
+        videoElement.style.height = '100%';
+        videoElement.style.objectFit = 'cover'; // 'Cover' memastikan video mengisi ruang tanpa distorsi
+      }
+    }).catch(err => {
       console.error("Gagal memulai kamera.", err);
     });
 
     console.log('Inline camera scanner (mode fleksibel) is now rendering.');
 
-    // Fungsi cleanup saat komponen di-unmount
     return () => {
       if (scannerRef.current && scannerRef.current.isScanning) {
         scannerRef.current.stop().then(() => {
           console.log('Inline camera scanner has been stopped.');
         }).catch(err => {
-          // Mengabaikan error yang kadang muncul saat komponen di-unmount cepat
           if (err && typeof err === 'string' && err.includes("not found")) return;
           console.error('Gagal menghentikan scanner.', err);
         });
@@ -57,11 +63,8 @@ export default function InlineScanner({ onScanSuccess }) {
   }, [onScanSuccess]);
 
   return (
-    // TRIK UTAMA ADA DI SINI:
-    // 1. Container ini memiliki tinggi tetap (h-28) dan overflow-hidden.
-    // 2. Ini akan "memotong" video dari library yang ukurannya lebih besar.
-    <div className="mt-4 max-w-sm mx-auto h-28 rounded-xl overflow-hidden bg-slate-900 ring-4 ring-white/10">
-      {/* 3. Div ini adalah tempat library merender video. */}
+    // Container ini tetap kecil, tapi sekarang video di dalamnya juga ikut kecil
+    <div className="mt-4 max-w-sm mx-auto h-28 rounded-xl overflow-hidden bg-slate-900 ring-4 ring-white/10 relative">
       <div id="inline-camera-reader" className="w-full h-full"></div>
     </div>
   );
