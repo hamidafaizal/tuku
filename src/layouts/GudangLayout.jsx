@@ -15,7 +15,7 @@ export default function GudangLayout() {
     { key: 'productList', label: 'Produk', icon: Package },
     { key: 'stockIn', label: 'Stok Masuk', icon: Truck },
     { key: 'report', label: 'Laporan', icon: BarChart3 },
-    { key: 'database', label: 'Database Barang', icon: Database }, // Menu diubah
+    { key: 'database', label: 'Data Barang', icon: Database }, // Label menu telah diubah
   ];
 
   // Fungsi untuk mengubah halaman yang aktif
@@ -54,4 +54,3 @@ export default function GudangLayout() {
     </div>
   );
 }
-

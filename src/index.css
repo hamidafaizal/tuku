@@ -107,23 +107,19 @@
   /* Divider halus */
   .divider { @apply h-px w-full bg-slate-200 my-4; }
 
-  /* Bottom navigation (opsional dipakai nanti) */
+  /* Bottom navigation (Mobile Friendly) */
   .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200
-           grid grid-cols-5 gap-1 px-2 py-1;
+    @apply fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xs
+           bg-white/80 backdrop-blur border border-slate-200
+           rounded-full shadow-lg flex justify-around items-center p-1 gap-1;
   }
-  .bottom-nav a { @apply flex flex-col items-center justify-center py-2 rounded-xl text-slate-600 hover:bg-slate-50; }
-  .bottom-nav a.active { @apply text-sky-700 bg-sky-50 font-semibold; }
-
-.divider { @apply h-px w-full bg-slate-200 my-4; }
-
-  /* Bottom navigation (opsional dipakai nanti) */
-  .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200
-           grid grid-cols-5 gap-1 px-2 py-1;
+  .bottom-nav-item { 
+    @apply flex flex-col items-center justify-center py-2 rounded-full 
+           text-slate-600 hover:bg-slate-50 w-full;
   }
-  .bottom-nav-item { @apply flex flex-col items-center justify-center py-2 rounded-xl text-slate-600 hover:bg-slate-50 w-full; }
-  .bottom-nav-item.active { @apply text-sky-700 bg-sky-50 font-semibold; }
+  .bottom-nav-item.active { 
+    @apply text-sky-700 bg-sky-50 font-semibold;
+  }
 }
 
 /* ======================== UTILITIES ======================== */
