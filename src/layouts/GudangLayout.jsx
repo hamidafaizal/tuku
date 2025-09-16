@@ -3,6 +3,7 @@ import { Package, Truck, BarChart3, DatabaseZap } from 'lucide-react'; // Mengga
 import BottomNav from '../components/owner/BottomNav.jsx';
 import ProductList from '../pages/owner/gudang/ProductList.jsx';
 import DatabaseBarang from '../pages/owner/gudang/DatabaseBarang.jsx';
+import StokMasuk from '../pages/owner/gudang/StokMasuk.jsx'; // Mengimpor komponen StokMasuk
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Gudang
 export default function GudangLayout() {
@@ -29,9 +30,11 @@ export default function GudangLayout() {
     switch (activeItem) {
       case 'productList':
         return <ProductList />;
+      case 'stockIn': // Menambahkan case untuk menu 'stockIn'
+        return <StokMasuk />;
       case 'database':
         return <DatabaseBarang />;
-      // Tambahkan case untuk 'stockIn' dan 'report' nanti di sini
+      // Tambahkan case untuk 'report' nanti di sini
       default:
         return <ProductList />;
     }
@@ -41,7 +44,7 @@ export default function GudangLayout() {
     // Container dibuat relatif agar BottomNav bisa diposisikan di bawah
     <div className="relative min-h-[calc(100vh-120px)] pb-16">
       {/* Konten Halaman */}
-      <div className="w-full">
+      <div className="w-full p-4">
         {renderPage()}
       </div>
 
@@ -54,4 +57,3 @@ export default function GudangLayout() {
     </div>
   );
 }
-

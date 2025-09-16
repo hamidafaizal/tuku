@@ -27,7 +27,7 @@ export default function DatabaseBarang() {
   useEffect(() => {
     const loadAndSyncData = async () => {
       setIsLoading(true);
-      console.log("Memuat data awal dari IndexedDB...");
+      console.log("Memuat data awal dari IndexedDB.");
       const localProducts = await getAllProducts();
       setItems(localProducts);
       setIsLoading(false);
@@ -77,7 +77,7 @@ export default function DatabaseBarang() {
       setIsSyncing(false);
     }
   };
-
+  
   // Fungsi untuk memfilter barang berdasarkan pencarian dan mengurutkannya
   const filteredItems = useMemo(() => {
     console.log("Memfilter dan mengurutkan data...");
@@ -95,7 +95,7 @@ export default function DatabaseBarang() {
       alert("Sesi tidak ditemukan. Silakan login kembali.");
       return;
     }
-    
+
     const tempId = -Date.now();
     const newItem = { ...newItemData, id: tempId, user_id: session.user.id };
     console.log("Menyimpan item baru ke lokal dengan ID sementara:", newItem);
@@ -159,7 +159,6 @@ export default function DatabaseBarang() {
   return (
     <>
       <div className="flex flex-col h-[calc(100vh-140px)]">
-        {/* Header dan Toolbar (Area statis) */}
         <div className="flex-shrink-0">
           {isBulkDeleteMode ? (
             <div className="sticky top-14 bg-white/80 backdrop-blur py-2 z-10 flex justify-between items-center gap-4 p-2 rounded-xl shadow-md border">
@@ -192,21 +191,19 @@ export default function DatabaseBarang() {
             </div>
           )}
 
-          {/* Notifikasi Offline/Syncing */}
-          {(isOffline || isSyncing) && (
-            <div className={`mt-4 border-l-4 p-4 rounded-r-lg flex items-center gap-3 ${isOffline ? 'bg-amber-50 border-amber-400' : 'bg-sky-50 border-sky-400'}`}>
-              {isSyncing ? <LoaderCircle className="w-5 h-5 text-sky-600 animate-spin" /> : <WifiOff className="w-5 h-5 text-amber-600" />}
-              <div>
-                <p className={`font-bold ${isOffline ? 'text-amber-800' : 'text-sky-800'}`}>{isSyncing ? 'Sinkronisasi...' : 'Anda sedang offline'}</p>
-                <p className={`text-sm ${isOffline ? 'text-amber-700' : 'text-sky-700'}`}>{isSyncing ? 'Memperbarui data dari server.' : 'Perubahan akan di-backup saat kembali online.'}</p>
-              </div>
-              {isOffline && (
-                <button onClick={syncFromServer} className="btn btn-sm ml-auto">
-                  <RefreshCw className="w-4 h-4"/> Coba Lagi
-                </button>
-              )}
+          {/* Notifikasi Offline/Syncing dinonaktifkan */}
+          {/* <div className={`mt-4 border-l-4 p-4 rounded-r-lg flex items-center gap-3 ${isOffline ? 'bg-amber-50 border-amber-400' : 'bg-sky-50 border-sky-400'}`}>
+            {isSyncing ? <LoaderCircle className="w-5 h-5 text-sky-600 animate-spin" /> : <WifiOff className="w-5 h-5 text-amber-600" />}
+            <div>
+              <p className={`font-bold ${isOffline ? 'text-amber-800' : 'text-sky-800'}`}>{isSyncing ? 'Sinkronisasi...' : 'Anda sedang offline'}</p>
+              <p className={`text-sm ${isOffline ? 'text-amber-700' : 'text-sky-700'}`}>{isSyncing ? 'Memperbarui data dari server.' : 'Perubahan akan di-backup saat kembali online.'}</p>
             </div>
-          )}
+            {isOffline && (
+              <button onClick={syncFromServer} className="btn btn-sm ml-auto">
+                <RefreshCw className="w-4 h-4"/> Coba Lagi
+              </button>
+            )}
+          </div> */}
 
           {/* Area Pencarian */}
           <div className="relative mt-4">

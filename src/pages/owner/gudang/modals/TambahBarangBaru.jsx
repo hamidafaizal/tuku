@@ -5,14 +5,14 @@ import InlineScanner from '../../../../components/cashier/InlineScanner.jsx';
 
 // Komponen Modal untuk menambah barang baru
 export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existingItems = [] }) {
-  const [formData, setFormData] = useState({ name: '', sku: '' });
+  const [formData, setFormData] = useState({ name: '', unit: '', sku: '' });
   const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
   const [isNameExists, setIsNameExists] = useState(false);
 
   // Fungsi untuk mereset state saat modal ditutup/dibuka
   useEffect(() => {
     if (isOpen) {
-      setFormData({ name: '', sku: '' });
+      setFormData({ name: '', unit: '', sku: '' });
       setCameraScannerOpen(false);
       setIsNameExists(false);
     }
@@ -62,7 +62,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
   // Mengubah handleSubmit menjadi pemanggil onSave
   const handleSubmit = () => {
     // Validasi sederhana sebelum menyimpan
-    if (!formData.name || !formData.sku || isNameExists) {
+    if (!formData.name || !formData.sku || !formData.unit || isNameExists) {
         console.log("Form tidak valid, penyimpanan dibatalkan.");
         return;
     }
@@ -74,10 +74,10 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
   if (!isOpen) return null;
 
   const canGenerateSku = formData.name && !formData.sku && !isNameExists;
-  const canSubmit = formData.name && formData.sku && !isNameExists;
+  const canSubmit = formData.name && formData.unit && formData.sku && !isNameExists;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
         {/* Header Modal */}
         <div className="p-4 border-b flex justify-between items-center">
@@ -103,6 +103,19 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
               {isNameExists && <p className="text-xs text-rose-600 mt-1">Nama barang ini sudah ada di database.</p>}
             </div>
 
+            {/* Input Satuan Dasar */}
+            <div>
+              <label htmlFor="unit" className="text-sm font-medium mb-1 block">Satuan Dasar</label>
+              <input
+                id="unit"
+                type="text"
+                value={formData.unit}
+                onChange={handleChange}
+                className="input"
+                placeholder="contoh: bungkus, biji, pcs, dll"
+              />
+            </div>
+            
             {/* Input Kode Barang (SKU) dengan Tombol Scanner */}
             <div>
               <label htmlFor="sku" className="text-sm font-medium mb-1 block">Kode Barang (SKU)</label>
