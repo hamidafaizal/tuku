@@ -75,43 +75,46 @@ export default function POS() {
     // Kamera tetap terbuka untuk scan berkelanjutan
   };
 
-  // Menghitung subtotal dan total
+  // Menghitung total
   const total = useMemo(() => {
     return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [cart]);
 
   return (
-    <div className="p-4 bg-slate-50">
+    <div className="h-full flex flex-col p-4 bg-slate-50 gap-4">
       {/* Bagian Atas: Pencarian & Tombol Scanner */}
-      <div className="sticky top-0 bg-slate-50 py-2 z-10">
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input pl-10"
-            placeholder="tulis nama barang/kode barang"
-            autoFocus
-          />
-          <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-        </form>
-        <button
-          onClick={() => setCameraScannerOpen(!isCameraScannerOpen)}
-          type="button"
-          className={`icon-btn absolute right-3 top-1/2 -translate-y-1/2 rounded-lg ${isCameraScannerOpen ? 'bg-sky-100 text-sky-600' : 'bg-white'}`}
-          title={isCameraScannerOpen ? "Tutup Scanner" : "Buka Scanner Kamera"}
-        >
-          {isCameraScannerOpen ? <X className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
-        </button>
+      <div>
+        <div className="relative w-full">
+            <form onSubmit={handleSearchSubmit}>
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="input pl-10"
+                    placeholder="tulis nama barang/kode barang"
+                    autoFocus
+                />
+                <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            </form>
+            <button
+              onClick={() => setCameraScannerOpen(!isCameraScannerOpen)}
+              type="button"
+              className={`icon-btn absolute right-1 top-1/2 -translate-y-1/2 rounded-lg ${isCameraScannerOpen ? 'bg-sky-100 text-sky-600' : 'bg-white'}`}
+              title={isCameraScannerOpen ? "Tutup Scanner" : "Buka Scanner Kamera"}
+            >
+              {isCameraScannerOpen ? <X className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+            </button>
+        </div>
+        {/* Tampilan Scanner Inline */}
+        {isCameraScannerOpen && <div className="mt-2"><InlineScanner onScanSuccess={handleCameraScanSuccess} /></div>}
       </div>
 
-      {/* Tampilan Scanner Inline */}
-      {isCameraScannerOpen && <InlineScanner onScanSuccess={handleCameraScanSuccess} />}
-
-      {/* Daftar Keranjang Belanja */}
-      <div className="mt-4 space-y-3">
+      {/* Daftar Keranjang Belanja (Area Scroll) */}
+      <div className="flex-1 overflow-y-auto space-y-3">
         {cart.length === 0 ? (
-          <p className="text-center text-slate-500 py-10">Keranjang masih kosong.</p>
+          <div className="h-full flex items-center justify-center">
+            <p className="text-center text-slate-500">Keranjang masih kosong.</p>
+          </div>
         ) : (
           cart.map(item => (
             <div key={item.id} className="card flex items-center gap-4">
@@ -135,9 +138,9 @@ export default function POS() {
       </div>
 
       {/* Bagian Bawah: Total & Tombol Bayar */}
-      <div className="sticky bottom-0 bg-slate-50 pt-4 pb-2 border-t border-slate-200 mt-6">
+      <div className="border-t border-slate-200 pt-4">
         <div className="space-y-2 text-slate-700 font-medium">
-          <div className="flex justify-between text-2xl text-slate-900 font-bold pt-2">
+          <div className="flex justify-between text-2xl text-slate-900 font-bold">
             <span>Total</span>
             <span>{formatCurrency(total)}</span>
           </div>
