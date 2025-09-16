@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Plus, Minus, Barcode, Camera, X } from 'lucide-react'; // Impor ikon X
+import { Search, Plus, Minus, Barcode, Camera, X } from 'lucide-react';
 import PaymentModal from '/src/components/modals/PaymentModal.jsx';
 import { useBarcodeScanner } from '/src/hooks/useBarcodeScanner.js';
-import InlineScanner from '/src/components/cashier/InlineScanner.jsx'; // Impor scanner inline baru
+import InlineScanner from '/src/components/cashier/InlineScanner.jsx';
+
+import PaymentModal from '../../components/modals/PaymentModal.jsx';
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner.js';
+import InlineScanner from '../../components/cashier/InlineScanner.jsx'; // Impor scanner inline baru
 
 // Database produk dummy
 const dummyProducts = [
@@ -10,6 +14,8 @@ const dummyProducts = [
   { id: 2, name: 'Susu UHT Indomilk', price: 18000, code: 'IND02', barcode: '8992703115428' },
   { id: 3, name: 'Roti Tawar Sari Roti', price: 16000, code: 'SR03', barcode: '8992772310113' },
   { id: 4, name: 'Minyak Goreng Bimoli 2L', price: 35000, code: 'BIM04', barcode: '8992611102018' },
+  { id: 5, name: 'Teh Botol Sosro', price: 5000, code: 'SOS05', barcode: '8996008101237' },
+  { id: 6, name: 'Indomie Goreng', price: 3500, code: 'IND06', barcode: '089686010019' },
 ];
 
 // Komponen Halaman Point of Sale (POS)
@@ -17,10 +23,9 @@ export default function POS() {
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [isCameraScannerOpen, setCameraScannerOpen] = useState(false); // State untuk toggle scanner inline
+  const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
   const searchInputRef = useRef(null);
 
-  // Fungsi terpusat untuk mencari produk dan menambahkannya ke keranjang
   const findProductAndAddToCart = (code) => {
     console.log(`Mencari produk dengan kode/nama: ${code}`);
     const query = code.toLowerCase();
@@ -39,17 +44,14 @@ export default function POS() {
     }
   };
 
-  // Menggunakan hook scanner fisik
   useBarcodeScanner((scannedCode) => {
     findProductAndAddToCart(scannedCode);
   });
   
-  // Fungsi callback saat kamera berhasil scan. Tidak lagi menutup scanner.
   const handleCameraScanSuccess = (scannedCode) => {
     findProductAndAddToCart(scannedCode);
   };
 
-  // Fungsi untuk menambah atau memperbarui item di keranjang
   const handleAddItem = (product) => {
     setCart(currentCart => {
       const existingItem = currentCart.find(item => item.id === product.id);
@@ -63,7 +65,6 @@ export default function POS() {
     setSearchQuery('');
   };
   
-  // Fungsi untuk handle pencarian manual
   const handleManualSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim() === '') return;
@@ -71,7 +72,6 @@ export default function POS() {
     setSearchQuery('');
   };
   
-  // Fungsi untuk mengubah jumlah barang
   const handleUpdateQty = (productId, newQty) => {
     setCart(currentCart => {
       if (newQty <= 0) {
@@ -83,7 +83,6 @@ export default function POS() {
     });
   };
   
-  // Kalkulasi total
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const tax = subtotal * 0.11;
   const total = subtotal + tax;
@@ -98,9 +97,11 @@ export default function POS() {
 
   return (
     <>
-      <div className="bg-slate-50 h-full flex flex-col" style={{ height: 'calc(100vh - 3.5rem)' }}>
+      {/* Menghapus style height dan flex-col dari container utama ini */}
+      {/* Kontrol layout sekarang dipegang oleh CashierLayout.jsx */}
+      <div className="bg-slate-50">
         {/* Area Atas: Input Pencarian & Scanner */}
-        <div className="p-4 border-b bg-white">
+        <div className="p-4 border-b bg-white sticky top-0 z-10">
           <form onSubmit={handleManualSearch} className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
@@ -113,7 +114,6 @@ export default function POS() {
               />
               <Barcode className="w-6 h-6 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
             </div>
-            {/* Tombol ini sekarang berfungsi sebagai toggle */}
             <button
               type="button"
               onClick={() => setCameraScannerOpen(prev => !prev)}
@@ -124,14 +124,14 @@ export default function POS() {
             </button>
           </form>
           
-          {/* Container untuk Inline Scanner yang muncul di bawah input */}
           {isCameraScannerOpen && (
             <InlineScanner onScanSuccess={handleCameraScanSuccess} />
           )}
         </div>
 
         {/* Area Tengah: Daftar Keranjang */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Menghapus class 'flex-1' karena scrolling diatur parent */}
+        <div className="overflow-y-auto">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <Barcode className="w-16 h-16 mb-4" />
@@ -140,7 +140,8 @@ export default function POS() {
             </div>
           ) : (
             <table className="table">
-              <thead className="sticky top-0 bg-slate-50">
+              {/* Thead tidak lagi sticky karena parent-nya sekarang scrollable */}
+              <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-2 w-full">Produk</th>
                   <th className="px-4 py-2 text-center">Jumlah</th>
@@ -150,18 +151,7 @@ export default function POS() {
               <tbody>
                 {cart.map(item => (
                   <tr key={item.id}>
-                    <td className="p-4">
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-sm text-slate-500">{formatCurrency(item.price)}</p>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => handleUpdateQty(item.id, item.qty - 1)} className="icon-btn hover:bg-slate-200"><Minus className="w-4 h-4" /></button>
-                        <span className="w-10 text-center font-semibold">{item.qty}</span>
-                        <button onClick={() => handleUpdateQty(item.id, item.qty + 1)} className="icon-btn hover:bg-slate-200"><Plus className="w-4 h-4" /></button>
-                      </div>
-                    </td>
-                    <td className="p-4 text-right font-semibold">{formatCurrency(item.price * item.qty)}</td>
+                    {/* ... existing code ... */}
                   </tr>
                 ))}
               </tbody>
@@ -170,20 +160,10 @@ export default function POS() {
         </div>
 
         {/* Area Bawah: Total & Tombol Bayar */}
-        <div className="p-4 border-t bg-white">
+        {/* Dibuat sticky di bawah agar selalu terlihat saat scroll */}
+        <div className="p-4 border-t bg-white sticky bottom-0">
           <div className="space-y-2 mb-4">
-            <div className="flex justify-between text-slate-600">
-              <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Pajak (11%)</span>
-              <span>{formatCurrency(tax)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-lg text-slate-800">
-              <span>Total</span>
-              <span>{formatCurrency(total)}</span>
-            </div>
+            {/* ... existing code ... */}
           </div>
           <button
             onClick={() => setPaymentModalOpen(true)}
@@ -195,7 +175,6 @@ export default function POS() {
         </div>
       </div>
       
-      {/* Modal Pembayaran */}
       <PaymentModal 
         isOpen={isPaymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}

@@ -1,18 +1,14 @@
-import POS from '../pages/cashier/POS.jsx';
-import Header from '../components/Header.jsx'; // Mengimpor Header
+import POS from '/src/pages/cashier/POS.jsx';
+import Header from '/src/components/Header.jsx';
 
-// Layout ini adalah "bungkus" untuk semua halaman dalam Mode Kasir.
 export default function CashierLayout() {
-  // Log untuk memastikan layout yang benar sedang dirender
-  console.log('Rendering CashierLayout with POS page');
-  
   return (
-    <div className="app-shell">
-      {/* Menampilkan Header tetapi menyembunyikan tombol menu */}
+    // Container utama diatur untuk mengisi seluruh layar dan menjadi flex container
+    <div className="h-screen bg-slate-50 flex flex-col">
       <Header showMenuButton={false} />
       
-      <main>
-        {/* Merender halaman Point of Sale */}
+      {/* Area main dibuat fleksibel dan dapat di-scroll */}
+      <main className="flex-1 overflow-y-auto">
         <POS />
       </main>
     </div>

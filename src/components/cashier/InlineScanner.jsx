@@ -5,38 +5,33 @@ export default function InlineScanner({ onScanSuccess }) {
   const scannerRef = useRef(null); // Ref untuk instance scanner
 
   useEffect(() => {
-    // Memastikan library scanner sudah dimuat dari CDN via index.html
     if (!window.Html5Qrcode) {
       console.error("Library Html5Qrcode belum termuat.");
       return;
     }
 
-    // Fungsi yang akan dipanggil saat scan berhasil
     const handleScanSuccess = (decodedText, decodedResult) => {
       console.log(`Kode sukses di-scan via kamera: ${decodedText}`, decodedResult);
       onScanSuccess(decodedText);
     };
     
-    // Fungsi untuk handle error (opsional, tapi baik untuk debugging)
     const handleScanFailure = (error) => {
-      // Kita bisa abaikan error "QR code not found" karena itu akan terjadi terus menerus
-      // console.warn(`Scan Error: ${error}`);
+      // Abaikan error umum "not found"
     };
 
     // Konfigurasi untuk scanner
     const config = {
-      fps: 10, // Frame per second untuk scanning
-      // Membuat area scan lebih kecil dan landscape, sesuai bentuk barcode
-      qrbox: { width: 250, height: 100 }, 
+      fps: 10,
+      // Membuat area scan sekecil mungkin agar tidak menutupi UI lain.
+      // Nilai ini bisa disesuaikan lagi jika perlu.
+      qrbox: { width: 200, height: 80 }, 
     };
 
-    // Inisialisasi scanner dengan mode fleksibel
     const html5QrCode = new window.Html5Qrcode("inline-camera-reader");
-    scannerRef.current = html5QrCode; // Simpan instance ke ref
+    scannerRef.current = html5QrCode;
     
-    // Mulai scanner dengan menargetkan kamera belakang dan konfigurasi kustom
     html5QrCode.start(
-      { facingMode: "environment" }, // 1. Selalu prioritaskan kamera belakang
+      { facingMode: "environment" },
       config,
       handleScanSuccess,
       handleScanFailure
@@ -46,25 +41,22 @@ export default function InlineScanner({ onScanSuccess }) {
 
     console.log('Inline camera scanner (mode fleksibel) is now rendering.');
 
-    // Fungsi cleanup saat komponen dilepas (unmounted)
     return () => {
-      // Gunakan instance dari ref untuk menghentikan scanner
-      // Ini akan mematikan kamera saat komponen disembunyikan
-      if (scannerRef.current) {
+      if (scannerRef.current && scannerRef.current.isScanning) {
         scannerRef.current.stop().then(() => {
           console.log('Inline camera scanner has been stopped.');
         }).catch(err => {
+          // Mengabaikan error yang kadang muncul saat komponen di-unmount cepat
+          if (err.includes("not found")) return;
           console.error('Gagal menghentikan scanner.', err);
         });
       }
     };
-  }, [onScanSuccess]); // Dependensi effect
+  }, [onScanSuccess]);
 
   return (
-    // 3. Mengatur ukuran container agar lebih compact
-    <div className="mt-4 bg-slate-800 rounded-xl p-1 max-w-sm mx-auto">
-      {/* Container untuk view kamera, tanpa UI bawaan library */}
-      {/* 2. Tidak ada tombol start/stop bawaan */}
+    // Container dibuat lebih ringkas
+    <div className="mt-4 bg-slate-800 rounded-xl p-1 max-w-xs mx-auto">
       <div id="inline-camera-reader" className="w-full rounded-lg overflow-hidden"></div>
     </div>
   );
