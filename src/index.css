@@ -109,7 +109,7 @@
 
   /* Bottom navigation (Mobile Friendly) */
   .bottom-nav {
-    @apply fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xs
+    @apply fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-sm
            bg-white/80 backdrop-blur border border-slate-200
            rounded-full shadow-lg flex justify-around items-center p-1 gap-1;
   }
@@ -130,3 +130,4 @@
   .ellipsis  { @apply whitespace-nowrap overflow-hidden text-ellipsis; }
   .shadow-xs { box-shadow: 0 1px 1px rgba(2, 6, 23, 0.04); }
 }
+

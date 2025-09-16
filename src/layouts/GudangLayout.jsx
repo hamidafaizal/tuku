@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Package, Truck, BarChart3, Database } from 'lucide-react';
-import BottomNav from '/src/components/owner/BottomNav.jsx';
-import ProductList from '/src/pages/owner/gudang/ProductList.jsx';
-import DatabaseBarang from '/src/pages/owner/gudang/DatabaseBarang.jsx';
+import { Package, Truck, BarChart3, DatabaseZap } from 'lucide-react'; // Mengganti ikon Database
+import BottomNav from '../components/owner/BottomNav.jsx';
+import ProductList from '../pages/owner/gudang/ProductList.jsx';
+import DatabaseBarang from '../pages/owner/gudang/DatabaseBarang.jsx';
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Gudang
 export default function GudangLayout() {
@@ -15,7 +15,7 @@ export default function GudangLayout() {
     { key: 'productList', label: 'Produk', icon: Package },
     { key: 'stockIn', label: 'Stok Masuk', icon: Truck },
     { key: 'report', label: 'Laporan', icon: BarChart3 },
-    { key: 'database', label: 'Data Barang', icon: Database }, // Label menu telah diubah
+    { key: 'database', label: 'Database', icon: DatabaseZap }, // Label dan ikon menu telah diubah
   ];
 
   // Fungsi untuk mengubah halaman yang aktif
@@ -30,7 +30,7 @@ export default function GudangLayout() {
       case 'productList':
         return <ProductList />;
       case 'database':
-        return <DatabaseBarang />; // Halaman baru ditambahkan
+        return <DatabaseBarang />;
       // Tambahkan case untuk 'stockIn' dan 'report' nanti di sini
       default:
         return <ProductList />;
@@ -54,3 +54,4 @@ export default function GudangLayout() {
     </div>
   );
 }
+
