@@ -24,12 +24,12 @@ export default function POS() {
   const formatCurrency = (number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
   };
-  
+
   // Mencari produk di database (simulasi) dan menambahkannya ke keranjang
   const findProductAndAddToCart = (code) => {
     console.log(`Mencari produk dengan kode: ${code}`);
     const product = dummyProducts.find(p => p.code.toLowerCase() === code.toLowerCase() || p.name.toLowerCase().includes(code.toLowerCase()));
-    
+
     if (product) {
       setCart(currentCart => {
         const existingItem = currentCart.find(item => item.id === product.id);
@@ -52,7 +52,7 @@ export default function POS() {
 
   // Menggunakan custom hook untuk scanner fisik
   useBarcodeScanner(findProductAndAddToCart);
-  
+
   // Fungsi yang dipanggil saat search form di-submit (Enter)
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -69,7 +69,7 @@ export default function POS() {
       ).filter(item => item.quantity > 0) // Hapus item jika jumlahnya 0
     );
   };
-  
+
   const handleCameraScanSuccess = (decodedText) => {
     findProductAndAddToCart(decodedText);
     // Kamera tetap terbuka untuk scan berkelanjutan
@@ -146,7 +146,10 @@ export default function POS() {
           </div>
         </div>
         <button
-          onClick={() => setPaymentOpen(true)}
+          onClick={() => {
+            console.log('Tombol Bayar diklik, membuka modal pembayaran.');
+            setPaymentOpen(true);
+          }}
           disabled={cart.length === 0}
           className="btn-primary w-full btn-lg mt-4"
         >
@@ -155,19 +158,20 @@ export default function POS() {
       </div>
 
       {/* Modal Pembayaran */}
-      {isPaymentOpen && (
-        <PaymentModal 
-          totalAmount={total}
-          onClose={() => setPaymentOpen(false)}
-          onPaymentSuccess={() => {
-            console.log('Pembayaran berhasil!');
-            setCart([]);
-            setPaymentOpen(false);
-          }}
-        />
-      )}
+      {/* Komponen modal dipanggil dan dikontrol oleh state isPaymentOpen */}
+      <PaymentModal
+        isOpen={isPaymentOpen}
+        totalAmount={total}
+        onClose={() => {
+          console.log('Menutup modal pembayaran.');
+          setPaymentOpen(false);
+        }}
+        onSuccess={() => { // Mengganti nama prop dari onPaymentSuccess menjadi onSuccess
+          console.log('Pembayaran berhasil!');
+          setCart([]); // Mengosongkan keranjang
+          setPaymentOpen(false); // Menutup modal
+        }}
+      />
     </div>
   );
 }
-
-
