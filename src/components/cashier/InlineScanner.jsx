@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 // Komponen untuk menampilkan view scanner secara inline dengan UI kustom
 export default function InlineScanner({ onScanSuccess }) {
   const scannerRef = useRef(null); // Ref untuk instance scanner
+  // Ref untuk melacak kode terakhir yang di-scan dan waktunya
+  const lastScanRef = useRef({ code: null, time: 0 }); 
 
   useEffect(() => {
     if (!window.Html5Qrcode) {
@@ -11,7 +13,25 @@ export default function InlineScanner({ onScanSuccess }) {
     }
 
     const handleScanSuccess = (decodedText, decodedResult) => {
+      const now = Date.now();
+      const COOLDOWN_MS = 10000; // Jeda 10 detik untuk barcode yang sama
+
+      // Cek apakah barcode yang di-scan sama dengan yang terakhir
+      // dan apakah masih dalam periode cooldown.
+      if (
+        decodedText === lastScanRef.current.code && 
+        (now - lastScanRef.current.time < COOLDOWN_MS)
+      ) {
+        console.log(`Barcode ${decodedText} diabaikan (cooldown).`);
+        return; // Abaikan scan jika sama dan masih dalam cooldown
+      }
+
+      // Jika barcode baru atau cooldown sudah selesai, proses scan.
       console.log(`Kode sukses di-scan via kamera: ${decodedText}`, decodedResult);
+      
+      // Perbarui ref dengan kode dan waktu scan yang baru
+      lastScanRef.current = { code: decodedText, time: now };
+      
       onScanSuccess(decodedText);
     };
     
@@ -69,4 +89,5 @@ export default function InlineScanner({ onScanSuccess }) {
     </div>
   );
 }
+
 
