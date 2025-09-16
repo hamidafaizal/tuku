@@ -95,7 +95,9 @@ export default function DatabaseBarang() {
       alert("Sesi tidak ditemukan. Silakan login kembali.");
       return;
     }
-
+    
+    // Memberi ID sementara untuk data yang disimpan secara lokal.
+    // ID negatif menandakan data belum disinkronkan ke server.
     const tempId = -Date.now();
     const newItem = { ...newItemData, id: tempId, user_id: session.user.id };
     console.log("Menyimpan item baru ke lokal dengan ID sementara:", newItem);
