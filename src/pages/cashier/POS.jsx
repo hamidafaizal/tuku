@@ -4,10 +4,6 @@ import PaymentModal from '/src/components/modals/PaymentModal.jsx';
 import { useBarcodeScanner } from '/src/hooks/useBarcodeScanner.js';
 import InlineScanner from '/src/components/cashier/InlineScanner.jsx';
 
-import PaymentModal from '../../components/modals/PaymentModal.jsx';
-import { useBarcodeScanner } from '../../hooks/useBarcodeScanner.js';
-import InlineScanner from '../../components/cashier/InlineScanner.jsx'; // Impor scanner inline baru
-
 // Database produk dummy
 const dummyProducts = [
   { id: 1, name: 'Kopi Bubuk ABC', price: 15000, code: 'ABC01', barcode: '8998866100133' },
@@ -97,10 +93,7 @@ export default function POS() {
 
   return (
     <>
-      {/* Menghapus style height dan flex-col dari container utama ini */}
-      {/* Kontrol layout sekarang dipegang oleh CashierLayout.jsx */}
       <div className="bg-slate-50">
-        {/* Area Atas: Input Pencarian & Scanner */}
         <div className="p-4 border-b bg-white sticky top-0 z-10">
           <form onSubmit={handleManualSearch} className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -129,18 +122,15 @@ export default function POS() {
           )}
         </div>
 
-        {/* Area Tengah: Daftar Keranjang */}
-        {/* Menghapus class 'flex-1' karena scrolling diatur parent */}
         <div className="overflow-y-auto">
           {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500">
+            <div className="flex flex-col items-center justify-center h-full text-slate-500 py-10">
               <Barcode className="w-16 h-16 mb-4" />
               <p>Keranjang masih kosong</p>
               <p className="text-sm">Scan barang untuk memulai</p>
             </div>
           ) : (
             <table className="table">
-              {/* Thead tidak lagi sticky karena parent-nya sekarang scrollable */}
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-2 w-full">Produk</th>
@@ -150,8 +140,25 @@ export default function POS() {
               </thead>
               <tbody>
                 {cart.map(item => (
-                  <tr key={item.id}>
-                    {/* ... existing code ... */}
+                  <tr key={item.id} className="border-b">
+                    <td className="p-4">
+                      <p className="font-semibold">{item.name}</p>
+                      <p className="text-sm text-slate-500">{formatCurrency(item.price)}</p>
+                    </td>
+                    <td className="p-4 align-middle">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => handleUpdateQty(item.id, item.qty - 1)} className="btn btn-secondary p-2 h-8 w-8">
+                          <Minus className="w-4 h-4"/>
+                        </button>
+                        <span className="font-semibold w-8 text-center">{item.qty}</span>
+                        <button onClick={() => handleUpdateQty(item.id, item.qty + 1)} className="btn btn-secondary p-2 h-8 w-8">
+                          <Plus className="w-4 h-4"/>
+                        </button>
+                      </div>
+                    </td>
+                    <td className="p-4 text-right align-middle font-semibold">
+                      {formatCurrency(item.price * item.qty)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -159,11 +166,20 @@ export default function POS() {
           )}
         </div>
 
-        {/* Area Bawah: Total & Tombol Bayar */}
-        {/* Dibuat sticky di bawah agar selalu terlihat saat scroll */}
         <div className="p-4 border-t bg-white sticky bottom-0">
           <div className="space-y-2 mb-4">
-            {/* ... existing code ... */}
+            <div className="flex justify-between text-slate-600">
+              <span>Subtotal</span>
+              <span>{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-slate-600">
+              <span>Pajak (11%)</span>
+              <span>{formatCurrency(tax)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-lg">
+              <span>Total</span>
+              <span>{formatCurrency(total)}</span>
+            </div>
           </div>
           <button
             onClick={() => setPaymentModalOpen(true)}

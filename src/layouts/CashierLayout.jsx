@@ -1,5 +1,5 @@
-import POS from '/src/pages/cashier/POS.jsx';
-import Header from '/src/components/Header.jsx';
+import POS from '../pages/cashier/POS.jsx';
+import Header from '../components/Header.jsx';
 
 export default function CashierLayout() {
   return (
