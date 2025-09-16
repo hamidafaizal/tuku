@@ -1,137 +1,144 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Trash2, X } from 'lucide-react';
-import TambahBarangBaruModal from './modals/TambahBarangBaru';
-import ConfirmationModal from './modals/ConfirmationModal';
+import TambahBarangBaruModal from './modals/TambahBarangBaru.jsx';
+import ConfirmationModal from './modals/ConfirmationModal.jsx';
+import { getAllProducts, addProduct, deleteProduct, deleteMultipleProducts } from '../../../utils/db.js';
 
 // Halaman untuk mengelola database barang di gudang
 export default function DatabaseBarang() {
-  const [isModalOpen, setModalOpen] = useState(false);
+  const [items, setItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isBulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [isBulkDeleteMode, setIsBulkDeleteMode] = useState(false); // State untuk mode hapus masal
 
-  // State untuk modal konfirmasi
-  const [confirmModalState, setConfirmModalState] = useState({
-    isOpen: false,
-    item: null,
-    action: null,
-  });
+  // Mengambil data dari IndexedDB saat komponen dimuat
+  useEffect(() => {
+    async function fetchProducts() {
+      console.log("Mencoba mengambil produk dari IndexedDB.");
+      const products = await getAllProducts();
+      setItems(products);
+      console.log("Produk berhasil diambil:", products);
+    }
+    fetchProducts();
+  }, []);
 
-  const [items, setItems] = useState([
-    { id: 1, name: 'Kopi Susu Gula Aren', sku: 'KSGA' },
-    { id: 2, name: 'Croissant Cokelat', sku: 'CRCK' },
-    { id: 3, name: 'Air Mineral 600ml', sku: 'AM600' },
-    { id: 4, name: 'Americano', sku: 'AMER' },
-    { id: 5, name: 'Teh Melati', sku: 'TMEL' },
-  ]);
-
+  // Fungsi untuk memfilter barang berdasarkan pencarian
   const filteredItems = useMemo(() => {
-    if (!searchTerm) return items;
-    const lowercasedTerm = searchTerm.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(lowercasedTerm) ||
-        item.sku.toLowerCase().includes(lowercasedTerm)
+    return items.filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm, items]);
+  }, [items, searchTerm]);
 
-  const handleSelectItem = (itemId) => {
-    setSelectedItems((prev) =>
-      prev.includes(itemId)
-        ? prev.filter((id) => id !== itemId)
-        : [...prev, itemId]
+  // Handler untuk membuka modal tambah barang
+  const handleAddItem = () => {
+    console.log("Tombol 'Barang Baru' diklik.");
+    setModalOpen(true);
+  };
+
+  // Handler untuk menyimpan barang baru
+  const handleSaveNewItem = async (newItem) => {
+    console.log("Menyimpan barang baru:", newItem);
+    await addProduct(newItem);
+    const updatedItems = await getAllProducts(); // Ambil data terbaru
+    setItems(updatedItems);
+    setModalOpen(false);
+  };
+  
+  // Handler untuk membuka konfirmasi hapus
+  const handleDeleteClick = (item) => {
+    console.log("Membuka konfirmasi untuk menghapus item:", item);
+    setItemToDelete(item);
+    setConfirmOpen(true);
+  };
+  
+  // Handler untuk konfirmasi dan eksekusi penghapusan
+  const handleConfirmDelete = async () => {
+    if (itemToDelete) {
+      console.log("Menghapus item:", itemToDelete);
+      if (Array.isArray(itemToDelete)) { // Hapus masal
+        await deleteMultipleProducts(itemToDelete.map(i => i.id));
+      } else { // Hapus tunggal
+        await deleteProduct(itemToDelete.id);
+      }
+      const updatedItems = await getAllProducts();
+      setItems(updatedItems);
+      console.log("Item berhasil dihapus, daftar diperbarui.");
+    }
+    setConfirmOpen(false);
+    setItemToDelete(null);
+    setBulkDeleteMode(false);
+    setSelectedItems([]);
+  };
+
+  // Handler untuk mengelola item yang dipilih (checklist)
+  const handleSelectItem = (id) => {
+    setSelectedItems(prev =>
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
     );
   };
 
-  const areAllFilteredSelected = useMemo(() => {
-    if (filteredItems.length === 0) return false;
-    return filteredItems.every((item) => selectedItems.includes(item.id));
-  }, [filteredItems, selectedItems]);
-
+  // Handler untuk memilih semua item
   const handleSelectAll = () => {
-    const filteredIds = filteredItems.map((item) => item.id);
-    if (areAllFilteredSelected) {
-      setSelectedItems((prev) => prev.filter((id) => !filteredIds.includes(id)));
-    } else {
-      setSelectedItems((prev) => [...new Set([...prev, ...filteredIds])]);
-    }
-  };
-  
-  // Fungsi untuk mengaktifkan mode hapus masal
-  const handleEnableBulkDelete = () => {
-    console.log('Mode hapus masal diaktifkan.');
-    setIsBulkDeleteMode(true);
-  };
-
-  // Fungsi untuk membatalkan mode hapus masal
-  const handleCancelBulkDelete = () => {
-    console.log('Mode hapus masal dibatalkan.');
-    setIsBulkDeleteMode(false);
-    setSelectedItems([]); // Reset item terpilih saat batal
-  };
-
-
-  const handleAddItem = () => setModalOpen(true);
-
-  const handleDeleteClick = (item, e) => {
-    e.stopPropagation();
-    console.log(`Membuka konfirmasi hapus untuk: ${item.name}`);
-    setConfirmModalState({ isOpen: true, item, action: 'delete' });
-  };
-  
-  const handleBulkDeleteClick = () => {
-    console.log(`Membuka konfirmasi hapus masal untuk ${selectedItems.length} item.`);
-    setConfirmModalState({ isOpen: true, item: null, action: 'bulk-delete' });
-  };
-  
-  const handleCloseConfirmModal = () => {
-    setConfirmModalState({ isOpen: false, item: null, action: null });
-  };
-
-  const handleConfirmAction = () => {
-    const { item, action } = confirmModalState;
-    console.log(`Aksi "${action}" dikonfirmasi.`);
-    
-    if (action === 'delete' && item) {
-      setItems((prev) => prev.filter((i) => i.id !== item.id));
-    }
-    
-    if (action === 'bulk-delete') {
-      setItems((prev) => prev.filter((i) => !selectedItems.includes(i.id)));
+    if (selectedItems.length === filteredItems.length) {
       setSelectedItems([]);
-      setIsBulkDeleteMode(false); // Keluar dari mode hapus masal setelah selesai
+    } else {
+      setSelectedItems(filteredItems.map(item => item.id));
     }
-    
-    handleCloseConfirmModal();
   };
-  
-  const getConfirmMessage = () => {
-    const { action, item } = confirmModalState;
-    if (action === 'delete') return `Apakah Anda yakin ingin menghapus "${item?.name}"?`;
-    if (action === 'bulk-delete') return `Apakah Anda yakin ingin menghapus ${selectedItems.length} barang yang dipilih?`;
-    return 'Apakah Anda yakin?';
+
+  // Handler untuk membuka konfirmasi hapus masal
+  const handleBulkDeleteClick = () => {
+    const itemsToDelete = items.filter(item => selectedItems.includes(item.id));
+    console.log("Membuka konfirmasi hapus masal untuk item:", itemsToDelete);
+    setItemToDelete(itemsToDelete);
+    setConfirmOpen(true);
   };
 
   return (
     <>
       <div className="space-y-4">
-        {/* Header Halaman */}
-        <div className="flex justify-between items-center flex-wrap gap-2">
-          <h2 className="text-xl font-bold">Data Barang</h2>
-          <div className="flex gap-2">
-             {!isBulkDeleteMode && (
-                <button onClick={handleEnableBulkDelete} className="btn btn-secondary">
-                    <Trash2 className="w-4 h-4" />
-                    <span>Hapus Masal</span>
-                </button>
-             )}
-            <button onClick={handleAddItem} className="btn btn-primary">
-              <Plus className="w-4 h-4" />
-              <span>Barang Baru</span>
-            </button>
+        {/* Header Halaman & Toolbar Aksi Hapus Masal */}
+        {isBulkDeleteMode ? (
+          <div className="sticky top-14 bg-white/80 backdrop-blur py-2 z-10 flex justify-between items-center gap-4 p-2 rounded-xl shadow-md border">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                checked={selectedItems.length === filteredItems.length && filteredItems.length > 0}
+                onChange={handleSelectAll}
+                aria-label="Pilih semua"
+              />
+              <span className="font-semibold">{selectedItems.length} dipilih</span>
+            </div>
+            <div className="flex items-center gap-2">
+               <button onClick={handleBulkDeleteClick} className="btn btn-danger btn-sm" disabled={selectedItems.length === 0}>
+                <Trash2 className="w-4 h-4" /> Hapus
+              </button>
+              <button onClick={() => setBulkDeleteMode(false)} className="icon-btn hover:bg-slate-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        </div>
-        
+        ) : (
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <h2 className="text-xl font-bold">Data Barang</h2>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setBulkDeleteMode(true)} className="btn btn-secondary">
+                <Trash2 className="w-4 h-4" />
+                <span>Hapus Masal</span>
+              </button>
+              <button onClick={handleAddItem} className="btn btn-primary">
+                <Plus className="w-4 h-4" />
+                <span>Barang Baru</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Area Pencarian */}
         <div className="relative">
           <input
@@ -143,91 +150,54 @@ export default function DatabaseBarang() {
           />
           <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
-        
-        {/* Toolbar Aksi Massal (hanya muncul di mode hapus masal) */}
-        {isBulkDeleteMode && (
-            <div className="h-10 flex items-center justify-between px-1 bg-slate-50 rounded-xl">
-                <div className="flex items-center gap-3">
-                    <input 
-                        type="checkbox"
-                        id="select-all"
-                        className="h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                        checked={areAllFilteredSelected}
-                        onChange={handleSelectAll}
-                        disabled={filteredItems.length === 0}
-                    />
-                    <label htmlFor="select-all" className="text-sm font-medium text-slate-700 select-none">
-                        Pilih Semua
-                    </label>
-                </div>
-                <div className="flex items-center gap-2">
-                    {selectedItems.length > 0 && (
-                        <button onClick={handleBulkDeleteClick} className="btn btn-danger btn-sm">
-                            <Trash2 className="w-4 h-4" />
-                            Hapus ({selectedItems.length})
-                        </button>
-                    )}
-                    <button onClick={handleCancelBulkDelete} className="btn btn-sm">
-                        <X className="w-4 h-4" />
-                        Batal
-                    </button>
-                </div>
-            </div>
-        )}
-        
+
         {/* Daftar Barang */}
         <div className="space-y-3">
-          {filteredItems.map(item => (
-            <div 
-              key={item.id} 
-              onClick={isBulkDeleteMode ? () => handleSelectItem(item.id) : undefined} 
-              className={`card flex items-center gap-4 transition-colors ${isBulkDeleteMode ? 'cursor-pointer' : ''} ${selectedItems.includes(item.id) ? 'bg-sky-50 ring-2 ring-sky-200' : 'hover:bg-slate-50'}`}
-            >
-              {isBulkDeleteMode && (
-                <input 
-                  type="checkbox"
-                  className="h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 pointer-events-none"
-                  checked={selectedItems.includes(item.id)}
-                  readOnly
-                />
-              )}
-              <div className="flex-1">
-                <p className="font-semibold text-slate-800">{item.name}</p>
-                <p className="text-sm text-slate-500">SKU: {item.sku}</p>
-              </div>
-              {!isBulkDeleteMode && (
-                <div className="flex items-center">
-                    <button 
-                      onClick={(e) => handleDeleteClick(item, e)}
-                      className="icon-btn hover:bg-rose-50" 
-                      title={`Hapus ${item.name}`}
-                    >
-                        <Trash2 className="w-4 h-4 text-rose-500" />
-                    </button>
+          {filteredItems.length > 0 ? (
+            filteredItems.map(item => (
+              <div key={item.id} className="card flex items-center gap-4">
+                {isBulkDeleteMode && (
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                    checked={selectedItems.includes(item.id)}
+                    onChange={() => handleSelectItem(item.id)}
+                  />
+                )}
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-800">{item.name}</p>
+                  <p className="text-sm text-slate-500">SKU: {item.sku}</p>
                 </div>
-              )}
-            </div>
-          ))}
-          {filteredItems.length === 0 && (
+                {!isBulkDeleteMode && (
+                  <button className="icon-btn hover:bg-slate-100 text-rose-500" onClick={() => handleDeleteClick(item)}>
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            ))
+          ) : (
             <div className="text-center py-10">
-              <p className="text-slate-500">Barang tidak ditemukan.</p>
+              <p className="text-slate-500">Tidak ada barang yang ditemukan.</p>
             </div>
           )}
         </div>
       </div>
-      
+
+      {/* Modal Tambah Barang Baru */}
       <TambahBarangBaruModal
         isOpen={isModalOpen}
         onClose={() => setModalOpen(false)}
+        onSave={handleSaveNewItem}
         existingItems={items}
       />
 
+      {/* Modal Konfirmasi Hapus */}
       <ConfirmationModal
-        isOpen={confirmModalState.isOpen}
-        onClose={handleCloseConfirmModal}
-        onConfirm={handleConfirmAction}
+        isOpen={isConfirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
         title="Konfirmasi Hapus"
-        message={getConfirmMessage()}
+        message={`Apakah Anda yakin ingin menghapus ${Array.isArray(itemToDelete) ? itemToDelete.length + ' barang' : 'barang ini'}? Proses ini tidak dapat diurungkan.`}
         confirmText="Ya, Hapus"
       />
     </>

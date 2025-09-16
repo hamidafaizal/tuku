@@ -4,7 +4,7 @@ import { useBarcodeScanner } from '../../../../hooks/useBarcodeScanner.js';
 import InlineScanner from '../../../../components/cashier/InlineScanner.jsx';
 
 // Komponen Modal untuk menambah barang baru
-export default function TambahBarangBaruModal({ isOpen, onClose, existingItems = [] }) {
+export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existingItems = [] }) {
   const [formData, setFormData] = useState({ name: '', sku: '' });
   const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
   const [isNameExists, setIsNameExists] = useState(false);
@@ -59,16 +59,22 @@ export default function TambahBarangBaruModal({ isOpen, onClose, existingItems =
     setFormData(prev => ({ ...prev, sku: newSku }));
   };
 
+  // Mengubah handleSubmit menjadi pemanggil onSave
   const handleSubmit = () => {
+    // Validasi sederhana sebelum menyimpan
+    if (!formData.name || !formData.sku || isNameExists) {
+        console.log("Form tidak valid, penyimpanan dibatalkan.");
+        return;
+    }
     console.log('Formulir tambah barang disubmit dengan data:', formData);
-    // Logika untuk menyimpan data akan ditambahkan di sini
-    onClose(); // Tutup modal setelah submit
+    onSave(formData); // Memanggil fungsi onSave dari parent
   };
   
   // Jangan render apapun jika modal tidak terbuka
   if (!isOpen) return null;
 
   const canGenerateSku = formData.name && !formData.sku && !isNameExists;
+  const canSubmit = formData.name && formData.sku && !isNameExists;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
@@ -144,7 +150,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, existingItems =
         {/* Footer Modal */}
         <div className="p-4 bg-slate-50 border-t flex justify-end gap-3">
           <button onClick={onClose} className="btn">Batal</button>
-          <button onClick={handleSubmit} className="btn btn-primary">
+          <button onClick={handleSubmit} disabled={!canSubmit} className="btn btn-primary">
             <Save className="w-4 h-4" />
             <span>Simpan</span>
           </button>
@@ -153,4 +159,3 @@ export default function TambahBarangBaruModal({ isOpen, onClose, existingItems =
     </div>
   );
 }
-
