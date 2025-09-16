@@ -1,14 +1,24 @@
 import { useMode } from '/src/context/ModeContext.jsx';
+import { useAuth } from '/src/context/AuthContext.jsx';
 import OwnerLayout from '/src/layouts/OwnerLayout.jsx';
 import CashierLayout from '/src/layouts/CashierLayout.jsx';
+import AuthPage from '/src/pages/AuthPage.jsx';
+
+// Komponen PrivateRoute untuk melindungi halaman yang memerlukan login
+function PrivateRoute({ children }) {
+  const { session } = useAuth();
+  console.log("PrivateRoute check, session:", session);
+  return session ? children : <AuthPage />;
+}
 
 export default function App() {
-  // Mengambil state mode global dari context
   const { isOwnerMode } = useMode();
   console.log('App is selecting layout, isOwnerMode:', isOwnerMode);
 
-  // Render layout yang sesuai berdasarkan mode yang aktif.
-  // Jika isOwnerMode true, tampilkan OwnerLayout, jika false, tampilkan CashierLayout.
-  return isOwnerMode ? <OwnerLayout /> : <CashierLayout />;
+  return (
+    <PrivateRoute>
+      {isOwnerMode ? <OwnerLayout /> : <CashierLayout />}
+    </PrivateRoute>
+  );
 }
 
