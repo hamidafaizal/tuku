@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext } from 'react';
-import { supabase } from '../supabaseClient.js';
+import { supabase } from '../../supabaseClient.js';
 
 const AuthContext = createContext();
 
@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Coba ambil sesi yang sudah ada
+    console.log("Mencoba mengambil sesi yang ada dari Supabase.");
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
@@ -16,6 +17,7 @@ export function AuthProvider({ children }) {
     });
 
     // Dengarkan perubahan status otentikasi
+    console.log("Memasang listener untuk perubahan status otentikasi.");
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -24,7 +26,10 @@ export function AuthProvider({ children }) {
     );
 
     // Cleanup listener saat komponen dilepas
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("Melepas listener status otentikasi.");
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Fungsi-fungsi otentikasi
@@ -39,7 +44,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
-    </Auth.Provider>
+    </AuthContext.Provider>
   );
 }
 
