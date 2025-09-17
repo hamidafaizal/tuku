@@ -41,10 +41,10 @@ export default function GudangLayout() {
   };
 
   return (
-    // Container utama diatur untuk mengisi sisa ruang dan memiliki overflow-y-auto
+    // Container utama diatur untuk mengisi sisa ruang tanpa overflow
     <div className="flex flex-col h-full overflow-hidden">
       {/* Konten Halaman yang akan digulir */}
-      <div className="flex-1 overflow-y-auto w-full p-4">
+      <div className="flex-1 w-full p-4">
         {renderPage()}
       </div>
 
