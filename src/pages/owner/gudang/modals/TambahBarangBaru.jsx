@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { X, Save, Camera, Sparkles, Info, Plus } from 'lucide-react';
+import { X, Save, Camera, Sparkles, Info, Plus, Loader2 } from 'lucide-react';
 import { useBarcodeScanner } from '../../../../hooks/useBarcodeScanner.js';
 import InlineScanner from '../../../../components/cashier/InlineScanner.jsx';
 
 // Komponen Modal untuk menambah barang baru
-export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existingItems = [] }) {
+export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existingItems = [], saveStatus }) {
   // Komentar: Menambah state `uom` untuk menampung data input UOM List
   const [formData, setFormData] = useState({
     name: '',
@@ -162,7 +162,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
   if (!isOpen) return null;
 
   const canGenerateBaseSku = formData.name && !formData.sku && !isNameExists;
-  const canSubmit = formData.name && formData.unit && formData.sku && !isNameExists && (!isUomListEnabled || formData.uom.every(u => u.uomList && u.uomQuantity > 0 && u.sku));
+  const canSubmit = formData.name && formData.unit && formData.sku && !isNameExists && (!isUomListEnabled || formData.uom.every(u => u.uomList && u.uomQuantity > 0 && u.sku)) && !saveStatus.loading;
   const canAddUom = formData.uom.length < 5;
 
   return (
@@ -187,6 +187,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                 className={`input ${isNameExists ? 'ring-rose-500' : ''}`}
                 placeholder="cth: Kopi Susu Gula Aren"
                 autoFocus
+                disabled={saveStatus.loading}
               />
               {isNameExists && <p className="text-xs text-rose-600 mt-1">Nama barang ini sudah ada di database.</p>}
             </div>
@@ -202,6 +203,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                   onChange={handleChange}
                   className="input"
                   placeholder="contoh: bungkus, biji, pcs, dll"
+                  disabled={saveStatus.loading}
                 />
               </div>
               <div className="flex-1">
@@ -214,12 +216,14 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                     onChange={handleChange}
                     className="input flex-1"
                     placeholder="Ketik atau scan barcode"
+                    disabled={saveStatus.loading}
                   />
                   <button
                     onClick={() => handleScannerToggle('base-sku')}
                     type="button"
                     className={`icon-btn rounded-lg mb-px ${isCameraScannerOpen && currentScannerTarget === 'base-sku' ? 'bg-sky-100 text-sky-600' : 'bg-white'}`}
                     title={isCameraScannerOpen && currentScannerTarget === 'base-sku' ? "Tutup Scanner" : "Buka Scanner Kamera"}
+                    disabled={saveStatus.loading}
                   >
                     <Camera className="w-5 h-5" />
                   </button>
@@ -231,7 +235,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
             <div className="text-center">
               <button
                 onClick={() => handleGenerateSku(null)}
-                disabled={!canGenerateBaseSku}
+                disabled={!canGenerateBaseSku || saveStatus.loading}
                 className="btn btn-ghost btn-sm"
               >
                 <Sparkles className="w-4 h-4" />
@@ -247,6 +251,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                 checked={isUomListEnabled}
                 onChange={() => setIsUomListEnabled(!isUomListEnabled)}
                 className="h-4 w-4 text-sky-600 focus:ring-sky-500 border-gray-300 rounded"
+                disabled={saveStatus.loading}
               />
               <label htmlFor="uom-list-toggle" className="text-sm font-medium text-slate-700">
                 Aktifkan UOM List
@@ -272,6 +277,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                           onClick={() => handleRemoveUom(index)}
                           className="icon-btn text-rose-500 hover:bg-rose-100"
                           title="Hapus Satuan Grosir"
+                          disabled={saveStatus.loading}
                         >
                           <X className="w-5 h-5" />
                         </button>
@@ -287,6 +293,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                             onChange={(e) => handleUomChange(index, e)}
                             className="input flex-1"
                             placeholder="Contoh : slop"
+                            disabled={saveStatus.loading}
                           />
                       </div>
                       <div className="w-24">
@@ -300,6 +307,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                             className="input pr-8"
                             placeholder="0"
                             min="0"
+                            disabled={saveStatus.loading}
                           />
                           <Info className="w-4 h-4 text-slate-400 cursor-pointer absolute right-2 top-1/2 -translate-y-1/2" />
                           <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-64 p-3 rounded-lg bg-slate-800 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
@@ -320,12 +328,14 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                                 onChange={(e) => handleUomChange(index, e)}
                                 className="input flex-1"
                                 placeholder="Ketik atau scan barcode"
+                                disabled={saveStatus.loading}
                                 />
                                 <button
                                 onClick={() => handleScannerToggle(`uom-sku-${index}`)}
                                 type="button"
                                 className={`icon-btn rounded-lg mb-px ${isCameraScannerOpen && currentScannerTarget === `uom-sku-${index}` ? 'bg-sky-100 text-sky-600' : 'bg-white'}`}
                                 title={isCameraScannerOpen && currentScannerTarget === `uom-sku-${index}` ? "Tutup Scanner" : "Buka Scanner Kamera"}
+                                disabled={saveStatus.loading}
                                 >
                                 <Camera className="w-5 h-5" />
                                 </button>
@@ -333,7 +343,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                         </div>
                          <button
                             onClick={() => handleGenerateSku(index)}
-                            disabled={!formData.name || !uomItem.uomList || uomItem.sku}
+                            disabled={!formData.name || !uomItem.uomList || uomItem.sku || saveStatus.loading}
                             className="btn btn-ghost btn-sm"
                             >
                             <Sparkles className="w-4 h-4" />
@@ -348,12 +358,26 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                       type="button"
                       onClick={handleAddUom}
                       className="btn btn-ghost btn-sm"
+                      disabled={saveStatus.loading}
                     >
                       <Plus className="w-4 h-4" />
                       Tambah UOM List
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+            
+            {/* Menampilkan status simpan */}
+            {saveStatus.loading && (
+              <div className="flex items-center justify-center p-3 text-sm text-sky-600 bg-sky-50 rounded-lg">
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <span>Menyimpan...</span>
+              </div>
+            )}
+            {saveStatus.error && (
+              <div className="p-3 text-sm text-rose-600 bg-rose-50 rounded-lg">
+                <span>Error: {saveStatus.error}</span>
               </div>
             )}
 
@@ -367,10 +391,19 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
 
         {/* Footer Modal */}
         <div className="p-4 bg-slate-50 border-t flex justify-end gap-3 flex-shrink-0">
-          <button onClick={onClose} className="btn">Batal</button>
+          <button onClick={onClose} className="btn" disabled={saveStatus.loading}>Batal</button>
           <button onClick={handleSubmit} disabled={!canSubmit} className="btn btn-primary">
-            <Save className="w-4 h-4" />
-            <span>Simpan</span>
+            {saveStatus.loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Menyimpan...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>Simpan</span>
+              </>
+            )}
           </button>
         </div>
       </div>

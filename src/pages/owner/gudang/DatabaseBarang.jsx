@@ -1,27 +1,64 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Loader2 } from 'lucide-react';
 import TambahBarangBaruModal from './modals/TambahBarangBaru.jsx';
-// Semua impor yang berhubungan dengan Supabase telah dihapus.
-// import { upsertSupabaseProduct } from '../../../utils/supabaseDb.js';
-// import { useAuth } from '../../../context/AuthContext.jsx';
+import { useAuth } from '../../../context/AuthContext.jsx';
+import { upsertProduct, fetchProducts } from '../../../utils/supabaseDb.js';
+import ConfirmationModal from './modals/ConfirmationModal.jsx';
 
-// Halaman untuk mengelola database barang di gudang dengan logika dummy
 export default function DatabaseBarang() {
   const [isModalOpen, setModalOpen] = useState(false);
-  // const { session } = useAuth();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { session } = useAuth();
+  const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
 
-  // Handler dummy untuk menyimpan barang baru
+  // Fungsi untuk memuat data dari Supabase
+  const loadProducts = async () => {
+    if (!session) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const fetchedProducts = await fetchProducts(session.user.id);
+      setProducts(fetchedProducts);
+      console.log('Data produk dimuat ke state:', fetchedProducts);
+    } catch (err) {
+      console.error('Gagal memuat produk:', err.message);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Memuat data saat komponen pertama kali dirender
+  useEffect(() => {
+    loadProducts();
+  }, [session]); // Jalankan lagi saat sesi berubah
+
   const handleSaveNewItem = async (newItemData) => {
-    // console.log untuk debugging
-    console.log("SIMULASI: Data yang diterima dari modal:", newItemData);
-    // Di sini Anda bisa menambahkan logika dummy lain jika diperlukan.
-    
-    // Setelah selesai, tutup modal
-    setModalOpen(false);
-    console.log("SIMULASI: Modal ditutup. Data tidak disimpan ke database.");
+    if (!session) {
+      setError('User not authenticated.');
+      return;
+    }
+    setSaveStatus({ loading: true, error: null });
+    try {
+      await upsertProduct(newItemData, session.user.id);
+      console.log('Produk berhasil disimpan, memuat ulang data...');
+      await loadProducts(); // Memuat ulang data setelah penyimpanan berhasil
+      setModalOpen(false);
+      setSaveStatus({ loading: false, error: null });
+    } catch (err) {
+      console.error('Gagal menyimpan produk:', err.message);
+      setSaveStatus({ loading: false, error: err.message });
+    }
   };
 
   const handleAddItem = () => setModalOpen(true);
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSaveStatus({ loading: false, error: null });
+  };
 
   return (
     <>
@@ -33,9 +70,68 @@ export default function DatabaseBarang() {
         </button>
       </div>
 
-      <p className="text-center text-slate-500 py-10">Data barang akan ditampilkan di sini.</p>
+      {loading && (
+        <div className="flex justify-center items-center py-10 text-slate-500">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+          <span>Memuat data...</span>
+        </div>
+      )}
 
-      <TambahBarangBaruModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} onSave={handleSaveNewItem} />
+      {error && (
+        <div className="p-4 mt-4 text-sm text-rose-600 bg-rose-50 rounded-lg">
+          <span>Error: {error}</span>
+        </div>
+      )}
+
+      {!loading && products.length > 0 && (
+        <div className="card mt-4 overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th className="w-1/4">Nama Barang</th>
+                <th className="w-1/4">Satuan Dasar</th>
+                <th className="w-1/4">SKU</th>
+                <th className="w-1/4">UOM List</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <td>{product.name}</td>
+                  <td>{product.unit}</td>
+                  <td>{product.sku}</td>
+                  <td>
+                    {product.uom ? (
+                      <ul className="list-disc list-inside">
+                        {product.uom.map((item, i) => (
+                          <li key={i}>
+                            {item.uomList} ({item.uomQuantity})<br />
+                            <span className="text-xs text-slate-400">SKU: {item.sku}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      
+      {!loading && products.length === 0 && !error && (
+        <p className="text-center text-slate-500 py-10">Belum ada data barang.</p>
+      )}
+
+      <TambahBarangBaruModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveNewItem}
+        existingItems={products}
+        saveStatus={saveStatus}
+      />
     </>
   );
 }
