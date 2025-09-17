@@ -48,9 +48,9 @@ export default function Header({ showMenuButton = true, onNavigate }) {
             <div className="w-9 h-9"></div>
           )}
 
-          {/* Judul Aplikasi - Akan mengisi ruang yang tersedia */}
+          {/* Judul Aplikasi - Menggunakan logo SVG */}
           <div className="flex-1 flex items-center justify-center pointer-events-none">
-            <h1 className="text-lg font-bold tracking-wide text-slate-900">Tuku</h1>
+            <img src="/logotuku2.svg" alt="Tuku Logo" className="h-6" />
           </div>
 
           {/* Profile Button */}
