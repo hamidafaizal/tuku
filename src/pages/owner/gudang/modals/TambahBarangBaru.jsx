@@ -17,6 +17,8 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
   const [currentScannerTarget, setCurrentScannerTarget] = useState(null); 
   const [isNameExists, setIsNameExists] = useState(false);
   const [isUomListEnabled, setIsUomListEnabled] = useState(false);
+  // Keterangan: Menambah state lokal untuk pesan error
+  const [localError, setLocalError] = useState(null);
 
   // Fungsi untuk mereset state saat modal ditutup/dibuka
   useEffect(() => {
@@ -26,6 +28,8 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
       setCurrentScannerTarget(null);
       setIsNameExists(false);
       setIsUomListEnabled(false);
+      // Keterangan: Mereset error lokal saat modal dibuka
+      setLocalError(null);
     }
   }, [isOpen]);
 
@@ -140,23 +144,56 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
   };
 
   // Mengubah handleSubmit menjadi pemanggil onSave
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setLocalError(null);
     // Validasi sederhana sebelum menyimpan
-    if (!formData.name || !formData.unit || !formData.sku || isNameExists) {
+    if (!formData.name || !formData.unit || !formData.sku) {
       console.log("Form tidak valid, penyimpanan dibatalkan.");
+      setLocalError("Nama, satuan dasar, dan SKU utama tidak boleh kosong.");
+      return;
+    }
+    
+    // Keterangan: Memeriksa duplikasi nama atau SKU dari database yang sudah dimuat di state `existingItems`
+    const allExistingSkus = new Set(existingItems.map(item => item.sku.toLowerCase()));
+    existingItems.forEach(item => {
+      if (item.uom) {
+        item.uom.forEach(uomItem => allExistingSkus.add(uomItem.sku.toLowerCase()));
+      }
+    });
+
+    const isBaseSkuExists = allExistingSkus.has(formData.sku.toLowerCase());
+    if (isBaseSkuExists) {
+      setLocalError(`SKU utama "${formData.sku}" sudah ada di database (baik di SKU utama atau UOM List).`);
+      console.log(`SKU utama "${formData.sku}" sudah ada di database (baik di SKU utama atau UOM List).`);
       return;
     }
 
     if (isUomListEnabled) {
+      // Memvalidasi UOM List
       const isUomValid = formData.uom.every(uom => uom.uomList && uom.uomQuantity > 0 && uom.sku);
       if (!isUomValid) {
+        setLocalError("Semua input UOM List, Jumlah Satuan Dasar, dan SKU harus terisi jika diaktifkan.");
         console.log("Semua input UOM List, Jumlah Satuan Dasar, dan SKU harus terisi jika diaktifkan.");
         return;
       }
-    }
+      
+      // Memeriksa duplikasi SKU di dalam UOM List sendiri
+      const uomSkus = formData.uom.map(uom => uom.sku.toLowerCase());
+      const hasDuplicateUomSku = new Set(uomSkus).size !== uomSkus.length;
+      if (hasDuplicateUomSku) {
+        setLocalError("SKU dalam UOM List tidak boleh duplikat.");
+        return;
+      }
 
-    console.log('Formulir tambah barang disubmit dengan data:', formData);
-    // Perubahan di sini: Mengirim status isUomListEnabled
+      // Memeriksa duplikasi SKU UOM List dengan SKU yang sudah ada di database
+      const duplicatedUomSkusInDb = uomSkus.filter(sku => allExistingSkus.has(sku));
+      if (duplicatedUomSkusInDb.length > 0) {
+        setLocalError(`SKU UOM list berikut sudah ada di database: ${duplicatedUomSkusInDb.join(', ')}.`);
+        console.log(`SKU UOM list berikut sudah ada di database: ${duplicatedUomSkusInDb.join(', ')}.`);
+        return;
+      }
+    }
+    
     onSave(formData, isUomListEnabled);
   };
 
@@ -369,16 +406,19 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
               </div>
             )}
             
-            {/* Menampilkan status simpan */}
-            {saveStatus.loading && (
-              <div className="flex items-center justify-center p-3 text-sm text-sky-600 bg-sky-50 rounded-lg">
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                <span>Menyimpan...</span>
-              </div>
-            )}
-            {saveStatus.error && (
-              <div className="p-3 text-sm text-rose-600 bg-rose-50 rounded-lg">
-                <span>Error: {saveStatus.error}</span>
+            {/* Menampilkan status simpan dari parent atau error lokal */}
+            {(saveStatus.loading || saveStatus.error || localError) && (
+              <div className="p-3 text-sm rounded-lg">
+                {saveStatus.loading ? (
+                  <div className="flex items-center justify-center text-sky-600 bg-sky-50">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span>Menyimpan...</span>
+                  </div>
+                ) : (
+                  <div className="text-rose-600 bg-rose-50">
+                    <span>Gagal menyimpan: {saveStatus.error || localError}</span>
+                  </div>
+                )}
               </div>
             )}
 

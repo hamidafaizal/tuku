@@ -48,3 +48,22 @@ export async function fetchProducts(userId) {
   console.log('Data produk berhasil diambil:', data);
   return data;
 }
+
+// Keterangan: Fungsi baru untuk menghapus produk dari database
+export async function deleteProducts(ids, userId) {
+  console.log('Mencoba menghapus produk dari database...', { ids, userId });
+
+  const { data, error } = await supabase
+    .from('gudang_database')
+    .delete()
+    .eq('user_id', userId)
+    .in('id', ids);
+
+  if (error) {
+    console.error('Error saat menghapus produk:', error.message);
+    throw new Error(error.message);
+  }
+
+  console.log('Produk berhasil dihapus:', data);
+  return data;
+}
