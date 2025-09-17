@@ -156,7 +156,8 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
     }
 
     console.log('Formulir tambah barang disubmit dengan data:', formData);
-    onSave(formData);
+    // Perubahan di sini: Mengirim status isUomListEnabled
+    onSave(formData, isUomListEnabled);
   };
 
   if (!isOpen) return null;

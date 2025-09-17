@@ -3,8 +3,8 @@
 import { supabase } from '../../supabaseClient.js';
 
 // Fungsi untuk menyimpan atau memperbarui data produk di tabel gudang_database
-export async function upsertProduct(productData, userId) {
-  console.log('Mencoba menyimpan produk ke database...', { productData, userId });
+export async function upsertProduct(productData, userId, isUomListEnabled) {
+  console.log('Mencoba menyimpan produk ke database...', { productData, userId, isUomListEnabled });
 
   // Struktur data yang akan dikirim ke Supabase
   const dataToInsert = {
@@ -12,8 +12,8 @@ export async function upsertProduct(productData, userId) {
     name: productData.name,
     unit: productData.unit,
     sku: productData.sku,
-    // Jika UOM List diaktifkan, simpan array UOM, jika tidak, simpan null.
-    uom: productData.uom.length > 1 ? productData.uom : null,
+    // Perubahan di sini: Mengirim data uom jika isUomListEnabled bernilai true, jika tidak mengirim null
+    uom: isUomListEnabled ? productData.uom : null,
   };
 
   const { data, error } = await supabase
@@ -27,6 +27,7 @@ export async function upsertProduct(productData, userId) {
   }
 
   console.log('Produk berhasil disimpan:', data);
+  console.log('Data yang dikirim ke Supabase:', dataToInsert);
   return data;
 }
 

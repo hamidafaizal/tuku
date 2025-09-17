@@ -37,14 +37,16 @@ export default function DatabaseBarang() {
     loadProducts();
   }, [session]); // Jalankan lagi saat sesi berubah
 
-  const handleSaveNewItem = async (newItemData) => {
+  const handleSaveNewItem = async (newItemData, isUomListEnabled) => {
+    console.log("Menyimpan item baru, isUomListEnabled:", isUomListEnabled);
     if (!session) {
       setError('User not authenticated.');
       return;
     }
     setSaveStatus({ loading: true, error: null });
     try {
-      await upsertProduct(newItemData, session.user.id);
+      // Perubahan di sini: Meneruskan isUomListEnabled ke fungsi upsertProduct
+      await upsertProduct(newItemData, session.user.id, isUomListEnabled);
       console.log('Produk berhasil disimpan, memuat ulang data...');
       await loadProducts(); // Memuat ulang data setelah penyimpanan berhasil
       setModalOpen(false);
@@ -61,10 +63,13 @@ export default function DatabaseBarang() {
     setSaveStatus({ loading: false, error: null });
   };
   
-  // Memfilter produk berdasarkan searchTerm
-  const filteredProducts = products.filter(product => 
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Memfilter dan mengurutkan produk berdasarkan searchTerm dan nama barang
+  // Mengurutkan produk secara abjad berdasarkan nama setelah difilter
+  const filteredProducts = products
+    .filter(product => 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="flex flex-col h-full">
