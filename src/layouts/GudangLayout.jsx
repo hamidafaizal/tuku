@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Package, Truck, BarChart3, DatabaseZap } from 'lucide-react'; // Mengganti ikon Database
+import { Package, Truck, BarChart3, DatabaseZap } from 'lucide-react';
 import BottomNav from '../components/owner/BottomNav.jsx';
 import ProductList from '../pages/owner/gudang/ProductList.jsx';
+import StokMasuk from '../pages/owner/gudang/StokMasuk.jsx';
 import DatabaseBarang from '../pages/owner/gudang/DatabaseBarang.jsx';
-import StokMasuk from '../pages/owner/gudang/StokMasuk.jsx'; // Mengimpor komponen StokMasuk
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Gudang
 export default function GudangLayout() {
   // State untuk melacak item menu mana yang aktif di BottomNav
-  const [activeItem, setActiveItem] = useState('productList');
+  const [activeItem, setActiveItem] = useState('database');
   console.log(`Rendering GudangLayout, item aktif: ${activeItem}`);
 
   // Daftar menu yang akan ditampilkan di navigasi bawah
@@ -16,7 +16,7 @@ export default function GudangLayout() {
     { key: 'productList', label: 'Produk', icon: Package },
     { key: 'stockIn', label: 'Stok Masuk', icon: Truck },
     { key: 'report', label: 'Laporan', icon: BarChart3 },
-    { key: 'database', label: 'Database', icon: DatabaseZap }, // Label dan ikon menu telah diubah
+    { key: 'database', label: 'Database', icon: DatabaseZap },
   ];
 
   // Fungsi untuk mengubah halaman yang aktif
@@ -30,24 +30,27 @@ export default function GudangLayout() {
     switch (activeItem) {
       case 'productList':
         return <ProductList />;
-      case 'stockIn': // Menambahkan case untuk menu 'stockIn'
+      case 'stockIn':
         return <StokMasuk />;
       case 'database':
         return <DatabaseBarang />;
       // Tambahkan case untuk 'report' nanti di sini
       default:
-        return <ProductList />;
+        return <DatabaseBarang />;
     }
   };
 
   return (
-    // Container utama diatur untuk mengisi sisa ruang tanpa overflow
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Konten Halaman yang akan digulir */}
-      <div className="flex-1 w-full p-4">
-        {renderPage()}
+    // Container utama diatur sebagai flex column dan menggunakan tinggi layar penuh
+    <div className="flex flex-col h-screen">
+      
+      {/* Area Tools (Fixed) */}
+      <div className="flex-shrink-0 p-4 border border-red-500">
+        {/* Area ini tidak akan digulir. */}
       </div>
 
+      {/* Konten Halaman (Scrollable) */}
+      
       {/* Navigasi Bawah (Persistent) */}
       <BottomNav 
         menuItems={gudangMenuItems}

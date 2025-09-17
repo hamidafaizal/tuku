@@ -68,29 +68,30 @@ export default function DatabaseBarang() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header dan Pencarian (Persistent) */}
-      <div className="flex justify-between items-center flex-wrap gap-4 flex-shrink-0">
-        <h2 className="text-xl font-bold">Data Barang</h2>
-        <button onClick={handleAddItem} className="btn btn-primary">
-          <Plus className="w-4 h-4" />
-          <span>Barang Baru</span>
-        </button>
-      </div>
+      {/* Container untuk header dan pencarian yang persisten */}
+      <div className="flex flex-col flex-shrink-0 mb-4 sticky top-0 backdrop-blur z-10 py-4 border-b border-slate-200">
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <button onClick={handleAddItem} className="btn btn-primary">
+            <Plus className="w-4 h-4" />
+            <span>Barang Baru</span>
+          </button>
+        </div>
 
-      {/* Area Pencarian */}
-      <div className="relative mt-4 flex-shrink-0">
-        <input 
-          type="text" 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-          className="input pl-10" 
-          placeholder="Cari nama barang..." 
-        />
-        <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        {/* Area Pencarian */}
+        <div className="relative mt-4">
+          <input 
+            type="text" 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+            className="input pl-10" 
+            placeholder="Cari nama barang..." 
+          />
+          <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        </div>
       </div>
-
-      {/* Konten Utama (Scrollable) */}
-      <div className="flex-1 overflow-y-auto mt-4">
+      
+      {/* Area konten yang dapat digulir */}
+      <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex justify-center items-center py-10 text-slate-500">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
