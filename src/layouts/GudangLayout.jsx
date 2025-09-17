@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Package, Truck, BarChart3, DatabaseZap } from 'lucide-react';
 import BottomNav from '../components/owner/BottomNav.jsx';
-import ProductList from '../pages/owner/gudang/ProductList.jsx';
-import StokMasuk from '../pages/owner/gudang/StokMasuk.jsx';
-import DatabaseBarang from '../pages/owner/gudang/DatabaseBarang.jsx';
+
+// Komentar: Menghapus impor untuk halaman-halaman turunan Gudang
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Gudang
 export default function GudangLayout() {
@@ -25,31 +24,26 @@ export default function GudangLayout() {
     setActiveItem(itemKey);
   };
 
-  // Fungsi untuk merender komponen halaman berdasarkan state activeItem
-  const renderPage = () => {
-    switch (activeItem) {
-      case 'productList':
-        return <ProductList />;
-      case 'stockIn':
-        return <StokMasuk />;
-      case 'database':
-        return <DatabaseBarang />;
-      // Tambahkan case untuk 'report' nanti di sini
-      default:
-        return <DatabaseBarang />;
-    }
-  };
+  // Komentar: Menghapus fungsi renderPage
+  // Sekarang hanya merender teks placeholder
 
   return (
-    // Container utama diatur sebagai flex column dan menggunakan tinggi layar penuh
+    // Container utama diatur sebagai flex container dan menggunakan tinggi layar penuh
     <div className="flex flex-col h-screen">
       
       {/* Area Tools (Fixed) */}
-      <div className="flex-shrink-0 p-4 border border-red-500">
-        {/* Area ini tidak akan digulir. */}
+      {/* Gunakan flex-shrink-0 untuk mencegah div ini mengecil */}
+      <div className="flex-shrink-0 p-4 border border-red-500 sticky top-0 bg-white z-10">
+        <p>disini kita akan mengatur area konten</p>
       </div>
 
       {/* Konten Halaman (Scrollable) */}
+      {/* Gunakan flex-1 overflow-y-auto untuk membuat area ini dapat discroll secara independen */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="container-app py-4 md:py-6">
+          <p className="text-slate-500">Konten area yang dapat di-scroll akan ditempatkan di sini.</p>
+        </div>
+      </div>
       
       {/* Navigasi Bawah (Persistent) */}
       <BottomNav 

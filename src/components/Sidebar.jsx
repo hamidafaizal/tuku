@@ -59,4 +59,3 @@ export default function Sidebar({ open = false, onNavigate = () => {}, onClose =
     </>
   );
 }
-

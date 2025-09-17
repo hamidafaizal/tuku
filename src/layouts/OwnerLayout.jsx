@@ -35,12 +35,11 @@ export default function OwnerLayout() {
       <Header onNavigate={handleNavigate} />
       
       {/* Konten Utama Aplikasi */}
-      <main>
-        <div className="container-app py-4 md:py-6">
+      <main className="flex-1">
+        <div className="container-app py-4 md:py-6 h-full">
           {renderPage()}
         </div>
       </main>
     </div>
   );
 }
-

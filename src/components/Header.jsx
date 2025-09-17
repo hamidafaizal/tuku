@@ -32,6 +32,7 @@ export default function Header({ showMenuButton = true, onNavigate }) {
       <header className="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
         <div className="container-app h-14 flex items-center justify-between">
           
+          {/* Menu Button - Ditampilkan hanya jika showMenuButton true */}
           {showMenuButton ? (
             <button
               onClick={handleMenuClick}
@@ -43,13 +44,16 @@ export default function Header({ showMenuButton = true, onNavigate }) {
               <Menu className="w-5 h-5 text-slate-700" />
             </button>
           ) : (
+            // placeholder kosong untuk menjaga tata letak tetap simetris
             <div className="w-9 h-9"></div>
           )}
 
+          {/* Judul Aplikasi - Akan mengisi ruang yang tersedia */}
           <div className="flex-1 flex items-center justify-center pointer-events-none">
             <h1 className="text-lg font-bold tracking-wide text-slate-900">Tuku</h1>
           </div>
 
+          {/* Profile Button */}
           <div className="relative">
             <button
               onClick={handleProfileClick}
@@ -66,13 +70,14 @@ export default function Header({ showMenuButton = true, onNavigate }) {
         </div>
       </header>
       
-      {/* Meneruskan fungsi navigasi yang sudah diperbarui ke Sidebar */}
+      {/* Sidebar untuk menu navigasi */}
       <Sidebar 
         open={sidebarOpen} 
         onNavigate={handleSidebarNavigate} 
         onClose={() => setSidebarOpen(false)} 
       />
       
+      {/* Sidebar untuk profil pengguna */}
       <ProfileSidebar 
         open={profileSidebarOpen}
         onClose={() => setProfileSidebarOpen(false)}
