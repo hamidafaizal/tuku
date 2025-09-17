@@ -30,12 +30,13 @@ export default function OwnerLayout() {
   };
 
   return (
-    <div className="app-shell">
+    // Hapus border merah untuk kembali ke tampilan normal
+    <div className="app-shell h-screen flex flex-col">
       {/* Meneruskan fungsi handleNavigate ke komponen Header */}
       <Header onNavigate={handleNavigate} />
       
       {/* Konten Utama Aplikasi */}
-      <main className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         <div className="container-app py-4 md:py-6 h-full">
           {renderPage()}
         </div>

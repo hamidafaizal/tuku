@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { Package, Truck, BarChart3, DatabaseZap } from 'lucide-react';
 import BottomNav from '../components/owner/BottomNav.jsx';
 
-// Komentar: Menghapus impor untuk halaman-halaman turunan Gudang
+// Halaman-halaman turunan Gudang
+import DatabaseBarang from '../pages/owner/gudang/DatabaseBarang.jsx';
+import ProductList from '../pages/owner/gudang/ProductList.jsx';
+import StokMasuk from '../pages/owner/gudang/StokMasuk.jsx';
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Gudang
 export default function GudangLayout() {
@@ -23,25 +26,30 @@ export default function GudangLayout() {
     console.log(`Navigasi di dalam Gudang ke: ${itemKey}`);
     setActiveItem(itemKey);
   };
-
-  // Komentar: Menghapus fungsi renderPage
-  // Sekarang hanya merender teks placeholder
+  
+  // Fungsi untuk merender komponen halaman sesuai activeItem
+  const renderPage = () => {
+    switch (activeItem) {
+      case 'productList':
+        return <ProductList />;
+      case 'stockIn':
+        return <StokMasuk />;
+      case 'database':
+        return <DatabaseBarang />;
+      // case 'report':
+      //   return <Laporan />; // Placeholder untuk menu lain
+      default:
+        return <DatabaseBarang />;
+    }
+  };
 
   return (
-    // Container utama diatur sebagai flex container dan menggunakan tinggi layar penuh
-    <div className="flex flex-col h-screen">
-      
-      {/* Area Tools (Fixed) */}
-      {/* Gunakan flex-shrink-0 untuk mencegah div ini mengecil */}
-      <div className="flex-shrink-0 p-4 border border-red-500 sticky top-0 bg-white z-10">
-        <p>disini kita akan mengatur area konten</p>
-      </div>
-
-      {/* Konten Halaman (Scrollable) */}
-      {/* Gunakan flex-1 overflow-y-auto untuk membuat area ini dapat discroll secara independen */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="container-app py-4 md:py-6">
-          <p className="text-slate-500">Konten area yang dapat di-scroll akan ditempatkan di sini.</p>
+    // Container GudangLayout diatur sebagai flex column agar konten terbagi secara vertikal
+    <div className="flex-1 flex flex-col">
+      {/* Area konten fleksibel yang akan digulir */}
+      <div className="flex-1">
+        <div className="container-app py-4 md:py-6 h-full">
+          {renderPage()}
         </div>
       </div>
       

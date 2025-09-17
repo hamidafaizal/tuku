@@ -91,7 +91,7 @@ export default function DatabaseBarang() {
       </div>
       
       {/* Area konten yang dapat digulir */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-20">
         {loading && (
           <div className="flex justify-center items-center py-10 text-slate-500">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
