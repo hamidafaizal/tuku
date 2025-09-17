@@ -41,14 +41,14 @@ export default function GudangLayout() {
   };
 
   return (
-    // Container dibuat relatif agar BottomNav bisa diposisikan di bawah
-    <div className="relative min-h-[calc(100vh-120px)] pb-16">
-      {/* Konten Halaman */}
-      <div className="w-full p-4">
+    // Container utama diatur untuk mengisi sisa ruang dan memiliki overflow-y-auto
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Konten Halaman yang akan digulir */}
+      <div className="flex-1 overflow-y-auto w-full p-4">
         {renderPage()}
       </div>
 
-      {/* Navigasi Bawah */}
+      {/* Navigasi Bawah (Persistent) */}
       <BottomNav 
         menuItems={gudangMenuItems}
         activeItem={activeItem}
