@@ -427,3 +427,112 @@ export async function fetchProductsAndStock() {
   console.log('Data produk dan stok berhasil diambil:', formattedProducts);
   return { data: formattedProducts, error: null };
 }
+
+// Keterangan: Fungsi baru untuk mengambil semua produk yang dapat dijual untuk halaman POS
+export async function fetchProductsForPOS() {
+  console.log('Mencoba mengambil data produk untuk POS.');
+  const { data, error } = await supabase
+    .from('prices')
+    .select(`
+      sku,
+      selling_price,
+      product:products (
+        id,
+        name,
+        base_unit,
+        stock_levels (current_stock)
+      ),
+      uom (
+        id,
+        uom_name,
+        quantity_per_uom
+      )
+    `)
+    .gt('selling_price', 0); // Keterangan: Hanya ambil produk yang harganya sudah diatur
+
+  if (error) {
+    console.error('Gagal mengambil data produk untuk POS:', error);
+    return { data: null, error };
+  }
+
+  // Keterangan: Memformat data agar mudah digunakan di frontend
+  const formattedData = data.map(item => {
+    // Keterangan: Menghitung stok. Jika stok tidak ada, anggap 0.
+    const stock = item.product.stock_levels.length > 0 ? item.product.stock_levels[0].current_stock : 0;
+    
+    // Keterangan: Cek apakah ini UOM atau satuan dasar
+    if (item.uom) {
+      // Ini adalah UOM
+      return {
+        product_id: item.product.id,
+        uom_id: item.uom.id,
+        sku: item.sku,
+        name: `${item.product.name} (${item.uom.uom_name})`,
+        price: item.selling_price,
+        stock: Math.floor(stock / item.uom.quantity_per_uom), // Stok dalam satuan UOM
+        quantity_in_base_unit: item.uom.quantity_per_uom,
+      };
+    } else {
+      // Ini adalah satuan dasar
+      return {
+        product_id: item.product.id,
+        uom_id: null,
+        sku: item.sku,
+        name: item.product.name,
+        price: item.selling_price,
+        stock: stock, // Stok dalam satuan dasar
+        quantity_in_base_unit: 1,
+      };
+    }
+  });
+
+  console.log('Data produk untuk POS berhasil diambil dan diformat:', formattedData);
+  return { data: formattedData, error: null };
+}
+
+// Keterangan: Fungsi baru untuk mencatat penjualan dan memperbarui stok
+export async function recordSaleAndUpdateStock(cartItems) {
+  console.log('Mencatat penjualan dan memperbarui stok untuk item:', cartItems);
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  // Keterangan: Menyiapkan data untuk dimasukkan ke sales_history
+  const salesHistoryData = cartItems.map(item => ({
+    user_id: session.user.id,
+    product_id: item.product_id,
+    uom_id: item.uom_id,
+    sku: item.sku,
+    quantity_sold: item.quantity,
+    selling_price: item.price,
+    total_price: item.price * item.quantity,
+  }));
+  
+  // Keterangan: Masukkan semua data penjualan
+  const { error: salesError } = await supabase.from('sales_history').insert(salesHistoryData);
+  
+  if (salesError) {
+    console.error('Gagal mencatat riwayat penjualan:', salesError);
+    return { success: false, error: salesError };
+  }
+  
+  console.log('Riwayat penjualan berhasil dicatat.');
+
+  // Keterangan: Memperbarui stok untuk setiap item
+  for (const item of cartItems) {
+    const stockToDecrement = item.quantity * item.quantity_in_base_unit;
+    
+    // Keterangan: Menggunakan RPC (Remote Procedure Call) untuk update stok secara atomik
+    const { error: stockError } = await supabase.rpc('decrement_stock', {
+      p_product_id: item.product_id,
+      p_quantity_to_decrement: stockToDecrement
+    });
+
+    if (stockError) {
+      console.error(`Gagal memperbarui stok untuk produk ID ${item.product_id}:`, stockError);
+      // Keterangan: Idealnya, transaksi harus di-rollback. Untuk saat ini, kita hanya log error.
+      return { success: false, error: stockError };
+    }
+  }
+
+  console.log('Semua stok berhasil diperbarui.');
+  return { success: true, error: null };
+}
