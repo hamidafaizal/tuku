@@ -219,7 +219,7 @@ export async function updateHargaJual(updates) {
   return { success: true, error: null };
 }
 
-// Keterangan: Fungsi baru untuk mengambil riwayat stok dari database
+// Keterangan: Fungsi untuk mengambil riwayat stok dari database
 export async function fetchStockHistory() {
   console.log('Mencoba mengambil riwayat stok dari database.');
   const { data, error } = await supabase
@@ -229,6 +229,7 @@ export async function fetchStockHistory() {
       created_at,
       sku,
       quantity,
+      purchase_price,
       total_base_quantity,
       products(name, base_unit),
       uom(uom_name, quantity_per_uom)
@@ -249,6 +250,7 @@ export async function fetchStockHistory() {
       created_at: item.created_at,
       product_sku: item.sku,
       quantity: item.quantity,
+      purchase_price: item.purchase_price,
       total_quantity_base_unit: item.total_base_quantity,
       product_name: item.products.name,
       product_unit: productUnit,
@@ -260,10 +262,11 @@ export async function fetchStockHistory() {
   return { data: formattedHistory, error: null };
 }
 
-// Keterangan: Fungsi baru untuk mencari produk dan UOM-nya berdasarkan SKU
+// Keterangan: Fungsi untuk mencari produk dan UOM-nya berdasarkan SKU
 export async function fetchProductBySku(sku) {
   console.log('Mencari produk dengan SKU:', sku);
 
+  // Keterangan: Mencari produk berdasarkan SKU dasar
   const { data: productData, error: productError } = await supabase
     .from('products')
     .select(`
@@ -301,6 +304,7 @@ export async function fetchProductBySku(sku) {
     };
   }
 
+  // Keterangan: Jika tidak ditemukan, coba cari di tabel UOM
   const { data: uomData, error: uomError } = await supabase
     .from('uom')
     .select(`
@@ -396,7 +400,7 @@ export async function addStock(stockData) {
   }
 }
 
-// Keterangan: Fungsi baru untuk mengambil semua produk beserta stoknya.
+// Keterangan: Fungsi untuk mengambil semua produk beserta stoknya.
 export async function fetchProductsAndStock() {
   console.log('Mencoba mengambil semua produk beserta stok dari database.');
   const { data, error } = await supabase

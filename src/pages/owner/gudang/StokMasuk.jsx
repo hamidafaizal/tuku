@@ -6,29 +6,39 @@ import { fetchStockHistory } from '../../../utils/supabaseDb.js';
 export default function StokMasuk() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [stockHistory, setStockHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
 
-  // Keterangan: Fungsi untuk memuat data riwayat stok dari Supabase
+  // Keterangan: Fungsi untuk memuat riwayat stok dari database
   const loadStockHistory = async () => {
     setLoading(true);
     setError(null);
     const { data, error } = await fetchStockHistory();
     if (error) {
+      setError(error.message);
       console.error('Gagal memuat riwayat stok:', error);
-      setError('Gagal memuat riwayat stok.');
     } else {
       setStockHistory(data);
     }
     setLoading(false);
   };
 
+  // Keterangan: Memuat data riwayat stok saat komponen dimuat
   useEffect(() => {
-    // Keterangan: Memuat data dari Supabase saat komponen dimuat
     loadStockHistory();
   }, []);
+  
+  // Fungsi untuk memformat angka menjadi format mata uang Rupiah
+  const formatCurrency = (number) => {
+    if (typeof number !== 'number') return 'Rp0';
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(number);
+  };
 
   const filteredHistory = useMemo(() => {
     return stockHistory
@@ -38,21 +48,14 @@ export default function StokMasuk() {
         const searchMatch = item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           item.product_sku.toLowerCase().includes(searchTerm.toLowerCase());
         return dateMatch && searchMatch;
-      })
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Mengurutkan berdasarkan tanggal terbaru
+      });
   }, [stockHistory, searchTerm, selectedDate]);
 
   const openTambahStokModal = () => setModalOpen(true);
   const closeTambahStokModal = () => {
     setModalOpen(false);
-    // Keterangan: Memuat ulang data setelah modal ditutup
+    // Keterangan: Muat ulang data setelah modal ditutup
     loadStockHistory();
-  };
-  
-  // Keterangan: Fungsi untuk memformat angka menjadi format mata uang Rupiah
-  const formatCurrency = (number) => {
-    if (typeof number !== 'number') return 'Rp0';
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
   };
 
   return (
@@ -114,6 +117,7 @@ export default function StokMasuk() {
                     <th>Nama Barang</th>
                     <th>SKU</th>
                     <th>Jumlah</th>
+                    <th>Harga Beli</th>
                     <th>Total Satuan Dasar</th>
                   </tr>
                 </thead>
@@ -124,6 +128,7 @@ export default function StokMasuk() {
                       <td>{item.product_name}</td>
                       <td>{item.product_sku}</td>
                       <td>{item.quantity} {item.product_unit}</td>
+                      <td>{formatCurrency(item.purchase_price)}</td>
                       <td>{item.total_quantity_base_unit} {item.base_unit}</td>
                     </tr>
                   ))}
@@ -147,6 +152,12 @@ export default function StokMasuk() {
                     <span className="font-semibold text-slate-600">Jumlah:</span>
                     <span>
                       {item.quantity} {item.product_unit}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-semibold text-slate-600">Harga Beli:</span>
+                    <span>
+                      {formatCurrency(item.purchase_price)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
