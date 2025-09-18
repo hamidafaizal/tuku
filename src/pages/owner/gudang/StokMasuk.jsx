@@ -1,61 +1,33 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Loader2 } from 'lucide-react';
 import TambahStokModal from './modals/TambahStok.jsx';
-// import { useAuth } from '../../../context/AuthContext.jsx';
-// import { fetchStockHistory } from '../../../utils/supabaseDb.js';
-
-// Data dummy untuk simulasi riwayat stok
-const dummyStockHistory = [
-  {
-    id: 1,
-    created_at: '2024-05-20T10:00:00.000Z',
-    product_sku: 'KSGA',
-    quantity: 10,
-    total_quantity_base_unit: 10,
-    product_name: 'Kopi Susu Gula Aren',
-    product_unit: 'bungkus',
-    base_unit: 'bungkus',
-  },
-  {
-    id: 2,
-    created_at: '2024-05-19T15:30:00.000Z',
-    product_sku: 'CRCK',
-    quantity: 5,
-    total_quantity_base_unit: 5,
-    product_name: 'Croissant Cokelat',
-    product_unit: 'pcs',
-    base_unit: 'pcs',
-  },
-  {
-    id: 3,
-    created_at: '2024-05-18T08:45:00.000Z',
-    product_sku: 'AM600',
-    quantity: 2,
-    total_quantity_base_unit: 48, // 2 dus x 24 botol
-    product_name: 'Air Mineral 600ml',
-    product_unit: 'dus',
-    base_unit: 'botol',
-  },
-];
+import { fetchStockHistory } from '../../../utils/supabaseDb.js';
 
 export default function StokMasuk() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [stockHistory, setStockHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
 
-  // Keterangan: Menggunakan useEffect untuk memuat data dummy saat komponen dimuat
-  useEffect(() => {
+  // Keterangan: Fungsi untuk memuat data riwayat stok dari Supabase
+  const loadStockHistory = async () => {
     setLoading(true);
     setError(null);
-    console.log('Menggunakan data dummy untuk riwayat stok.');
-    // Keterangan: Mensimulasikan loading selama 500ms
-    setTimeout(() => {
-      setStockHistory(dummyStockHistory);
-      setLoading(false);
-    }, 500);
+    const { data, error } = await fetchStockHistory();
+    if (error) {
+      console.error('Gagal memuat riwayat stok:', error);
+      setError('Gagal memuat riwayat stok.');
+    } else {
+      setStockHistory(data);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    // Keterangan: Memuat data dari Supabase saat komponen dimuat
+    loadStockHistory();
   }, []);
 
   const filteredHistory = useMemo(() => {
@@ -67,12 +39,20 @@ export default function StokMasuk() {
                           item.product_sku.toLowerCase().includes(searchTerm.toLowerCase());
         return dateMatch && searchMatch;
       })
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Mengurutkan berdasarkan tanggal terbaru
   }, [stockHistory, searchTerm, selectedDate]);
 
   const openTambahStokModal = () => setModalOpen(true);
   const closeTambahStokModal = () => {
     setModalOpen(false);
-    // Keterangan: Tidak perlu memuat ulang data karena menggunakan data dummy
+    // Keterangan: Memuat ulang data setelah modal ditutup
+    loadStockHistory();
+  };
+  
+  // Keterangan: Fungsi untuk memformat angka menjadi format mata uang Rupiah
+  const formatCurrency = (number) => {
+    if (typeof number !== 'number') return 'Rp0';
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
   };
 
   return (
