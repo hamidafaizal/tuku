@@ -1,9 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, Camera, Loader2, Save } from 'lucide-react';
 import InlineScanner from '../../../../components/cashier/InlineScanner.jsx';
-import { useAuth } from '../../../../context/AuthContext.jsx';
-import { fetchProducts, addStockToDb } from '../../../../utils/supabaseDb.js';
+// import { useAuth } from '../../../../context/AuthContext.jsx';
+// import { fetchProducts, addStockToDb } from '../../../../utils/supabaseDb.js';
 import { useBarcodeScanner } from '../../../../hooks/useBarcodeScanner.js';
+
+// Data dummy produk untuk simulasi pencarian
+const dummyProducts = [
+  {
+    id: 1,
+    name: 'Kopi Susu Gula Aren',
+    unit: 'bungkus',
+    sku: 'KSGA',
+    uom: [
+      { uomList: 'slop', uomQuantity: 10, sku: 'SLOP-KSGA' },
+      { uomList: 'karton', uomQuantity: 100, sku: 'KARTON-KSGA' },
+    ],
+  },
+  {
+    id: 2,
+    name: 'Croissant Cokelat',
+    unit: 'pcs',
+    sku: 'CRCK',
+    uom: null,
+  },
+  {
+    id: 3,
+    name: 'Air Mineral 600ml',
+    unit: 'botol',
+    sku: 'AM600',
+    uom: [
+      { uomList: 'dus', uomQuantity: 24, sku: 'DUS-AM600' },
+    ],
+  },
+];
 
 // Komponen modal untuk menambah stok barang
 export default function TambahStokModal({ isOpen, onClose }) {
@@ -21,8 +51,6 @@ export default function TambahStokModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
-
-  const { session } = useAuth();
 
   // Keterangan: Fungsi untuk mereset state saat modal ditutup
   useEffect(() => {
@@ -58,7 +86,7 @@ export default function TambahStokModal({ isOpen, onClose }) {
     setScannedCode(e.target.value);
   };
   
-  // Keterangan: Fungsi untuk mencari produk setelah kode diinput atau di-scan
+  // Keterangan: Fungsi dummy untuk mencari produk
   const handleSearch = async (code) => {
     if (!code) {
         setError('Kode barang tidak boleh kosong.');
@@ -68,20 +96,15 @@ export default function TambahStokModal({ isOpen, onClose }) {
     setError('');
     setProductFound(null);
     setMatchedSku(null);
-    console.log('Mencari produk dengan kode:', code);
+    console.log('Mencari produk dengan kode (dummy):', code);
     
-    try {
-      if (!session?.user?.id) {
-        throw new Error("User ID is not available.");
-      }
-      
-      const allProducts = await fetchProducts(session.user.id);
+    // Keterangan: Mensimulasikan delay API
+    setTimeout(() => {
       let foundProduct = null;
       let isBaseSkuMatch = false;
       let matchedUomItem = null;
       
-      // Keterangan: Mencari produk berdasarkan SKU utama atau SKU UOM
-      for (const product of allProducts) {
+      for (const product of dummyProducts) {
         if (product.sku === code) {
           foundProduct = product;
           isBaseSkuMatch = true;
@@ -105,7 +128,7 @@ export default function TambahStokModal({ isOpen, onClose }) {
             sku: foundProduct.sku,
             unit: foundProduct.unit,
             name: foundProduct.name,
-            quantity: 1 // Kuantitas per unit SKU utama selalu 1
+            quantity: 1
           });
         } else {
           setMatchedSku({
@@ -116,50 +139,27 @@ export default function TambahStokModal({ isOpen, onClose }) {
             quantity: matchedUomItem.uomQuantity
           });
         }
-        setStockQuantity(''); // Reset kuantitas ke string kosong
-        console.log('Produk ditemukan:', foundProduct);
+        setStockQuantity('');
+        console.log('Produk dummy ditemukan:', foundProduct);
         console.log('SKU yang cocok:', isBaseSkuMatch ? 'SKU Utama' : 'UOM List');
       } else {
         setError("Kode barang belum di input ke database!");
-        console.log('Kode barang tidak ditemukan.');
+        console.log('Kode barang dummy tidak ditemukan.');
       }
-    } catch (err) {
-      console.error("Gagal mencari produk:", err);
-      setError("Gagal mencari produk: " + err.message);
-    } finally {
       setLoading(false);
-    }
+    }, 500);
   };
   
-  // Keterangan: Fungsi untuk menangani penambahan stok
-  const handleAddStock = async () => {
+  // Keterangan: Fungsi dummy untuk menangani penambahan stok
+  const handleAddStock = () => {
     setSaveStatus({ loading: true, error: null });
+    console.log('Mencoba menyimpan data stok masuk (dummy)...');
     
-    let totalQuantityBaseUnit = 0;
-    if (matchedSku.type === 'uom') {
-        totalQuantityBaseUnit = stockQuantity * matchedSku.quantity;
-    } else {
-        totalQuantityBaseUnit = stockQuantity;
-    }
-
-    const stockData = {
-        user_id: session.user.id,
-        product_sku: matchedSku.sku,
-        quantity: stockQuantity,
-        total_quantity_base_unit: totalQuantityBaseUnit,
-    };
-
-    console.log('Mencoba menyimpan data stok masuk:', stockData);
-
-    try {
-      await addStockToDb(stockData);
-      console.log('Data stok berhasil disimpan.');
+    setTimeout(() => {
+      console.log('Data stok berhasil disimpan secara dummy.');
       setSaveStatus({ loading: false, error: null });
       onClose();
-    } catch (err) {
-      console.error('Gagal menyimpan stok:', err);
-      setSaveStatus({ loading: false, error: err.message });
-    }
+    }, 1000);
   };
 
   // Keterangan: Fungsi untuk mengelola perubahan input jumlah stok

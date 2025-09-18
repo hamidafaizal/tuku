@@ -5,22 +5,18 @@ import InlineScanner from '../../../../components/cashier/InlineScanner.jsx';
 
 // Komponen Modal untuk menambah barang baru
 export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existingItems = [], saveStatus }) {
-  // Komentar: Menambah state `uom` untuk menampung data input UOM List
   const [formData, setFormData] = useState({
     name: '',
     unit: '',
     sku: '', // SKU untuk satuan dasar
     uom: [{ uomList: '', uomQuantity: 0, sku: '' }],
   });
-  // Komentar: Menambah state untuk mengelola tampilan scanner dan input mana yang aktif
   const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
   const [currentScannerTarget, setCurrentScannerTarget] = useState(null); 
   const [isNameExists, setIsNameExists] = useState(false);
   const [isUomListEnabled, setIsUomListEnabled] = useState(false);
-  // Keterangan: Menambah state lokal untuk pesan error
   const [localError, setLocalError] = useState(null);
 
-  // Fungsi untuk mereset state saat modal ditutup/dibuka
   useEffect(() => {
     if (isOpen) {
       setFormData({ name: '', unit: '', sku: '', uom: [{ uomList: '', uomQuantity: 0, sku: '' }] });
@@ -28,12 +24,10 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
       setCurrentScannerTarget(null);
       setIsNameExists(false);
       setIsUomListEnabled(false);
-      // Keterangan: Mereset error lokal saat modal dibuka
       setLocalError(null);
     }
   }, [isOpen]);
 
-  // Cek apakah nama barang sudah ada setiap kali nama di form berubah
   useEffect(() => {
     if (formData.name) {
       const exists = existingItems.some(item => item.name.toLowerCase() === formData.name.toLowerCase());
@@ -44,26 +38,20 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
   }, [formData.name, existingItems]);
 
 
-  // Fungsi untuk menangani perubahan pada input form umum
   const handleChange = (e) => {
     const { id, value } = e.target;
-    console.log(`Input dengan id "${id}" diubah menjadi:`, value);
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  // Fungsi untuk menangani perubahan pada input UOM List
   const handleUomChange = (index, e) => {
     const { id, value } = e.target;
-    console.log(`UOM input di index ${index} dengan id "${id}" diubah menjadi:`, value);
     const newUom = [...formData.uom];
     newUom[index][id] = value;
     setFormData(prev => ({ ...prev, uom: newUom }));
   };
 
-  // Fungsi untuk menambah UOM List baru
   const handleAddUom = () => {
     if (formData.uom.length < 5) {
-      console.log("Menambahkan UOM baru.");
       setFormData(prev => ({
         ...prev,
         uom: [...prev.uom, { uomList: '', uomQuantity: 0, sku: '' }]
@@ -71,23 +59,17 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
     }
   };
   
-  // Fungsi untuk menghapus UOM List
   const handleRemoveUom = (index) => {
-    console.log(`Menghapus UOM pada index: ${index}`);
     const newUom = formData.uom.filter((_, i) => i !== index);
     setFormData(prev => ({ ...prev, uom: newUom }));
   };
 
-  // Komentar: Fungsi baru untuk membuka/menutup scanner kamera dengan target input
   const handleScannerToggle = (target) => {
     setCameraScannerOpen(prev => !prev);
     setCurrentScannerTarget(isCameraScannerOpen ? null : target);
-    console.log(`Scanner kamera di-toggle untuk target: ${target}`);
   };
 
-  // Komentar: Fungsi callback yang sudah disesuaikan untuk mengisi input yang benar
   const handleScanSuccess = (scannedCode) => {
-    console.log(`Kode barang berhasil dipindai: ${scannedCode}`);
     if (currentScannerTarget === 'base-sku') {
         setFormData(prev => ({ ...prev, sku: scannedCode }));
     } else if (currentScannerTarget && currentScannerTarget.startsWith('uom-sku-')) {
@@ -105,11 +87,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
     setCurrentScannerTarget(null);
   };
   
-  // Menggunakan custom hook untuk scanner fisik.
   const handleBarcodeScan = (scannedCode) => {
-    // Komentar: Asumsi scanner fisik selalu mengisi SKU UOM pertama jika UOM List aktif, 
-    // jika tidak, mengisi SKU Satuan Dasar
-    console.log(`Kode dari scanner fisik terdeteksi: ${scannedCode}`);
     if (isUomListEnabled) {
       const newUom = [...formData.uom];
       newUom[0].sku = scannedCode;
@@ -120,9 +98,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
   };
   useBarcodeScanner(isOpen ? handleBarcodeScan : () => {});
 
-  // Fungsi untuk membuat kode barang otomatis
   const handleGenerateSku = (index = null) => {
-    console.log(`Membuat kode barang otomatis untuk UOM index: ${index}`);
     const nameAcronym = formData.name
       .split(' ')
       .map(word => word[0])
@@ -131,11 +107,9 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
     const uniqueSuffix = Date.now().toString().slice(-4);
     
     if (index === null) {
-        // Generate SKU untuk satuan dasar
         const newSku = `${nameAcronym}${uniqueSuffix}`;
         setFormData(prev => ({ ...prev, sku: newSku }));
     } else {
-        // Generate SKU untuk UOM List
         const newSku = `${nameAcronym}-${formData.uom[index].uomList.toUpperCase()}${uniqueSuffix}`;
         const newUom = [...formData.uom];
         newUom[index].sku = newSku;
@@ -143,17 +117,13 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
     }
   };
 
-  // Mengubah handleSubmit menjadi pemanggil onSave
   const handleSubmit = async () => {
     setLocalError(null);
-    // Validasi sederhana sebelum menyimpan
     if (!formData.name || !formData.unit || !formData.sku) {
-      console.log("Form tidak valid, penyimpanan dibatalkan.");
       setLocalError("Nama, satuan dasar, dan SKU utama tidak boleh kosong.");
       return;
     }
     
-    // Keterangan: Memeriksa duplikasi nama atau SKU dari database yang sudah dimuat di state `existingItems`
     const allExistingSkus = new Set(existingItems.map(item => item.sku.toLowerCase()));
     existingItems.forEach(item => {
       if (item.uom) {
@@ -163,21 +133,17 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
 
     const isBaseSkuExists = allExistingSkus.has(formData.sku.toLowerCase());
     if (isBaseSkuExists) {
-      setLocalError(`SKU utama "${formData.sku}" sudah ada di database (baik di SKU utama atau UOM List).`);
-      console.log(`SKU utama "${formData.sku}" sudah ada di database (baik di SKU utama atau UOM List).`);
+      setLocalError(`SKU utama "${formData.sku}" sudah ada.`);
       return;
     }
 
     if (isUomListEnabled) {
-      // Memvalidasi UOM List
       const isUomValid = formData.uom.every(uom => uom.uomList && uom.uomQuantity > 0 && uom.sku);
       if (!isUomValid) {
         setLocalError("Semua input UOM List, Jumlah Satuan Dasar, dan SKU harus terisi jika diaktifkan.");
-        console.log("Semua input UOM List, Jumlah Satuan Dasar, dan SKU harus terisi jika diaktifkan.");
         return;
       }
       
-      // Memeriksa duplikasi SKU di dalam UOM List sendiri
       const uomSkus = formData.uom.map(uom => uom.sku.toLowerCase());
       const hasDuplicateUomSku = new Set(uomSkus).size !== uomSkus.length;
       if (hasDuplicateUomSku) {
@@ -185,16 +151,19 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
         return;
       }
 
-      // Memeriksa duplikasi SKU UOM List dengan SKU yang sudah ada di database
       const duplicatedUomSkusInDb = uomSkus.filter(sku => allExistingSkus.has(sku));
       if (duplicatedUomSkusInDb.length > 0) {
         setLocalError(`SKU UOM list berikut sudah ada di database: ${duplicatedUomSkusInDb.join(', ')}.`);
-        console.log(`SKU UOM list berikut sudah ada di database: ${duplicatedUomSkusInDb.join(', ')}.`);
         return;
       }
     }
     
-    onSave(formData, isUomListEnabled);
+    // Perubahan di sini: Mengirim data `isUomListEnabled` dan memfilter UOM yang kosong
+    const dataToSave = isUomListEnabled 
+      ? { ...formData, uom: formData.uom.filter(u => u.uomList && u.uomQuantity > 0 && u.sku) }
+      : { ...formData, uom: null };
+
+    onSave(dataToSave);
   };
 
   if (!isOpen) return null;
@@ -406,7 +375,6 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
               </div>
             )}
             
-            {/* Menampilkan status simpan dari parent atau error lokal */}
             {(saveStatus.loading || saveStatus.error || localError) && (
               <div className="p-3 text-sm rounded-lg">
                 {saveStatus.loading ? (
@@ -422,7 +390,6 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
               </div>
             )}
 
-            {/* Tampilan Scanner Inline */}
             {isCameraScannerOpen && (
               <div className="pt-2">
                 <InlineScanner onScanSuccess={handleScanSuccess} />

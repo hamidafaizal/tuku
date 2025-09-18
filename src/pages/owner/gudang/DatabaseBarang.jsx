@@ -1,105 +1,57 @@
 import { useState, useEffect } from 'react';
-import { Plus, Loader2, Search, Trash2, ListFilter, CheckSquare, X } from 'lucide-react';
+import { Plus, Loader2, Search, Trash2, X } from 'lucide-react';
 import TambahBarangBaruModal from './modals/TambahBarangBaru.jsx';
-import { useAuth } from '../../../context/AuthContext.jsx';
-// Keterangan: Mengimpor fungsi deleteProducts yang baru
-import { upsertProduct, fetchProducts, deleteProducts } from '../../../utils/supabaseDb.js';
 import ConfirmationModal from './modals/ConfirmationModal.jsx';
+
+// Data produk dummy
+const DUMMY_PRODUCTS = [
+  { id: 1, name: 'Kopi Susu Gula Aren', unit: 'pcs', sku: 'KSGA-001', uom: null },
+  { id: 2, name: 'Croissant Cokelat', unit: 'pcs', sku: 'CRCK-001', uom: [{ uomList: 'box', uomQuantity: 12, sku: 'CRCK-BOX-001' }] },
+  { id: 3, name: 'Air Mineral 600ml', unit: 'botol', sku: 'AM-001', uom: [{ uomList: 'dus', uomQuantity: 24, sku: 'AM-DUS-001' }] },
+];
 
 export default function DatabaseBarang() {
   const [isModalOpen, setModalOpen] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState(DUMMY_PRODUCTS);
+  const [loading, setLoading] = useState(false); // Mengubah ke false karena menggunakan data dummy
   const [error, setError] = useState(null);
-  const { session } = useAuth();
   const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
   const [searchTerm, setSearchTerm] = useState('');
-  // Keterangan: State baru untuk mengelola mode hapus massal dan item yang dipilih
   const [isBulkDeleteMode, setIsBulkDeleteMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
-  // Keterangan: State baru untuk menyimpan ID item yang akan dihapus satu per satu
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Fungsi untuk memuat data dari Supabase
-  const loadProducts = async () => {
-    if (!session) return;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const fetchedProducts = await fetchProducts(session.user.id);
-      setProducts(fetchedProducts);
-      console.log('Data produk dimuat ke state:', fetchedProducts);
-    } catch (err) {
-      console.error('Gagal memuat produk:', err.message);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Memuat data saat komponen pertama kali dirender
-  useEffect(() => {
-    loadProducts();
-  }, [session]); // Jalankan lagi saat sesi berubah
-
-  const handleSaveNewItem = async (newItemData, isUomListEnabled) => {
-    console.log("Menyimpan item baru, isUomListEnabled:", isUomListEnabled);
-    if (!session) {
-      setError('User not authenticated.');
-      return;
-    }
+  // Keterangan: Fungsi untuk menambah produk baru ke data dummy
+  const handleSaveNewItem = async (newItemData) => {
     setSaveStatus({ loading: true, error: null });
-    
-    const isNameExists = products.some(product => product.name.toLowerCase() === newItemData.name.toLowerCase());
-    const isBaseSkuExists = products.some(product => product.sku.toLowerCase() === newItemData.sku.toLowerCase());
+    // Simulasi penundaan penyimpanan
+    await new Promise(resolve => setTimeout(resolve, 500));
 
+    // Validasi duplikasi SKU secara lokal
     const allExistingSkus = new Set(products.map(item => item.sku.toLowerCase()));
     products.forEach(item => {
       if (item.uom) {
         item.uom.forEach(uomItem => allExistingSkus.add(uomItem.sku.toLowerCase()));
       }
     });
-
-    const isSkuExistsInAnywhere = allExistingSkus.has(newItemData.sku.toLowerCase());
-    if (isSkuExistsInAnywhere) {
-        setSaveStatus({ loading: false, error: `SKU utama "${newItemData.sku}" sudah ada di database.` });
+    
+    if (allExistingSkus.has(newItemData.sku.toLowerCase())) {
+        setSaveStatus({ loading: false, error: `SKU utama "${newItemData.sku}" sudah ada.` });
         return;
     }
-
-    const duplicatedUomSkus = [];
-    if (isUomListEnabled) {
-      newItemData.uom.forEach(uomItem => {
-        if (allExistingSkus.has(uomItem.sku.toLowerCase())) {
-          duplicatedUomSkus.push(uomItem.sku);
-        }
-      });
-    }
-
-    if (isNameExists || duplicatedUomSkus.length > 0) {
-      let errorMessage = 'Gagal menyimpan. ';
-      if (isNameExists) {
-        errorMessage += `Nama barang "${newItemData.name}" sudah ada. `;
-      }
+    
+    if (newItemData.uom) {
+      const duplicatedUomSkus = newItemData.uom.filter(uomItem => allExistingSkus.has(uomItem.sku.toLowerCase()));
       if (duplicatedUomSkus.length > 0) {
-        errorMessage += `SKU UOM list berikut sudah ada: ${duplicatedUomSkus.join(', ')}.`;
+        setSaveStatus({ loading: false, error: `SKU UOM list berikut sudah ada: ${duplicatedUomSkus.map(u => u.sku).join(', ')}.` });
+        return;
       }
-      setSaveStatus({ loading: false, error: errorMessage });
-      console.log(errorMessage);
-      return;
     }
 
-    try {
-      await upsertProduct(newItemData, session.user.id, isUomListEnabled);
-      console.log('Produk berhasil disimpan, memuat ulang data...');
-      await loadProducts();
-      setModalOpen(false);
-      setSaveStatus({ loading: false, error: null });
-    } catch (err) {
-      console.error('Gagal menyimpan produk:', err.message);
-      setSaveStatus({ loading: false, error: err.message });
-    }
+    setProducts(prev => [...prev, { ...newItemData, id: prev.length + 1 }]);
+    setSaveStatus({ loading: false, error: null });
+    setModalOpen(false);
   };
 
   const handleAddItem = () => setModalOpen(true);
@@ -108,34 +60,18 @@ export default function DatabaseBarang() {
     setSaveStatus({ loading: false, error: null });
   };
   
-  // Keterangan: Fungsi baru untuk mengelola pembukaan konfirmasi modal untuk satu item
   const openDeleteConfirmation = (id) => {
     setItemToDelete(id);
     setIsConfirmationModalOpen(true);
-    console.log(`Membuka konfirmasi hapus untuk item ID: ${id}`);
   };
 
-  // Keterangan: Fungsi untuk menghapus satu item, dipanggil setelah konfirmasi
   const handleDeleteItem = async () => {
     if (!itemToDelete) return;
-    console.log(`Mencoba menghapus item dengan ID: ${itemToDelete}`);
-    if (!session) return;
-    setSaveStatus({ loading: true, error: null });
-    try {
-      await deleteProducts([itemToDelete], session.user.id);
-      console.log(`Item dengan ID ${itemToDelete} berhasil dihapus.`);
-      await loadProducts();
-    } catch (err) {
-      console.error('Gagal menghapus item:', err.message);
-      setSaveStatus({ loading: false, error: err.message });
-    } finally {
-      setSaveStatus({ loading: false, error: null });
-      setIsConfirmationModalOpen(false);
-      setItemToDelete(null);
-    }
+    setProducts(prev => prev.filter(p => p.id !== itemToDelete));
+    setIsConfirmationModalOpen(false);
+    setItemToDelete(null);
   };
-
-  // Keterangan: Fungsi untuk mengelola item yang dipilih untuk hapus massal
+  
   const handleSelectItem = (id) => {
     const newSelectedItems = new Set(selectedItems);
     if (newSelectedItems.has(id)) {
@@ -144,35 +80,16 @@ export default function DatabaseBarang() {
       newSelectedItems.add(id);
     }
     setSelectedItems(newSelectedItems);
-    console.log('Item yang dipilih:', newSelectedItems);
   };
   
-  // Keterangan: Fungsi untuk menghapus item yang dipilih
   const handleDeleteSelectedItems = async () => {
-    console.log('Mencoba menghapus item yang dipilih:', selectedItems);
     if (selectedItems.size === 0) return;
-    if (!session) return;
-    setSaveStatus({ loading: true, error: null });
-
-    const selectedIds = Array.from(selectedItems);
-
-    try {
-      await deleteProducts(selectedIds, session.user.id);
-      console.log('Item yang dipilih berhasil dihapus.');
-      setSelectedItems(new Set());
-      setIsBulkDeleteMode(false);
-      await loadProducts();
-    } catch (err) {
-      console.error('Gagal menghapus item yang dipilih:', err.message);
-      setSaveStatus({ loading: false, error: err.message });
-    } finally {
-      setSaveStatus({ loading: false, error: null });
-      setIsConfirmationModalOpen(false);
-      setItemToDelete(null);
-    }
+    setProducts(prev => prev.filter(p => !selectedItems.has(p.id)));
+    setSelectedItems(new Set());
+    setIsBulkDeleteMode(false);
+    setIsConfirmationModalOpen(false);
   };
   
-  // Keterangan: Fungsi baru untuk memilih/membatalkan pilihan semua item
   const handleSelectAll = () => {
     if (selectedItems.size === filteredProducts.length) {
       setSelectedItems(new Set());
@@ -180,7 +97,6 @@ export default function DatabaseBarang() {
       const allIds = filteredProducts.map(product => product.id);
       setSelectedItems(new Set(allIds));
     }
-    console.log(`Select All di-toggle. Jumlah item dipilih: ${filteredProducts.length}`);
   };
 
   const filteredProducts = products
@@ -200,7 +116,6 @@ export default function DatabaseBarang() {
               <button
                 onClick={() => setIsConfirmationModalOpen(true)}
                 disabled={selectedItems.size === 0}
-                // Keterangan: Mengubah ukuran tombol Hapus menjadi btn-sm
                 className="btn btn-danger btn-sm"
               >
                 <Trash2 className="w-4 h-4" />
@@ -211,7 +126,6 @@ export default function DatabaseBarang() {
                   setIsBulkDeleteMode(false);
                   setSelectedItems(new Set());
                 }}
-                // Keterangan: Mengubah ukuran tombol Batal menjadi btn-sm
                 className="btn btn-sm"
               >
                 <X className="w-4 h-4" />
@@ -227,7 +141,6 @@ export default function DatabaseBarang() {
               <button
                 onClick={() => setIsBulkDeleteMode(true)}
                 disabled={products.length === 0}
-                // Keterangan: Mengubah ukuran tombol Hapus Massal menjadi btn-sm
                 className="btn btn-danger btn-sm"
               >
                 <Trash2 className="w-4 h-4" />
@@ -319,7 +232,6 @@ export default function DatabaseBarang() {
                       </td>
                       <td className="td-right">
                         {!isBulkDeleteMode && (
-                          // Keterangan: Mengubah onClick untuk memanggil fungsi konfirmasi
                           <button onClick={() => openDeleteConfirmation(product.id)} className="icon-btn text-rose-500 hover:bg-rose-100" title="Hapus Barang">
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -362,7 +274,6 @@ export default function DatabaseBarang() {
                       <p className="text-sm text-slate-500">{product.unit}</p>
                     </div>
                     {!isBulkDeleteMode && (
-                      // Keterangan: Mengubah onClick untuk memanggil fungsi konfirmasi
                       <button onClick={() => openDeleteConfirmation(product.id)} className="icon-btn text-rose-500 hover:bg-rose-100" title="Hapus Barang">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -408,12 +319,10 @@ export default function DatabaseBarang() {
         saveStatus={saveStatus}
       />
 
-      {/* Keterangan: Mengubah props ConfirmationModal untuk menangani hapus satu item */}
       <ConfirmationModal
         isOpen={isConfirmationModalOpen}
         onClose={() => {
           setIsConfirmationModalOpen(false);
-          // Keterangan: Mereset itemToDelete dan selectedItems saat menutup modal
           setItemToDelete(null);
           if (isBulkDeleteMode) {
             setSelectedItems(new Set());

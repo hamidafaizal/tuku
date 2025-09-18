@@ -1,38 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Loader2, Edit, Save, X } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { fetchHargaJual, updateHargaJual } from '../../../utils/supabaseDb';
+// import { useAuth } from '../../../context/AuthContext';
+// import { fetchHargaJual, updateHargaJual } from '../../../utils/supabaseDb';
+
+// Data dummy untuk simulasi
+const dummyData = [
+  {
+    id: 1,
+    name: 'Kopi Susu Gula Aren',
+    unit: 'bungkus',
+    harga_jual_dasar: 15000,
+    uom_list: [
+      { uomList: 'slop', uomQuantity: 10, harga: 140000 },
+      { uomList: 'karton', uomQuantity: 100, harga: 1300000 },
+    ],
+  },
+  {
+    id: 2,
+    name: 'Croissant Cokelat',
+    unit: 'pcs',
+    harga_jual_dasar: 12000,
+    uom_list: null,
+  },
+  {
+    id: 3,
+    name: 'Air Mineral 600ml',
+    unit: 'botol',
+    harga_jual_dasar: 3000,
+    uom_list: [
+      { uomList: 'dus', uomQuantity: 24, harga: 65000 },
+    ],
+  },
+];
 
 // Halaman Harga Jual
 export default function HargaJual() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [hargaJualData, setHargaJualData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [hargaJualData, setHargaJualData] = useState(dummyData); // Gunakan data dummy
+  const [loading, setLoading] = useState(false); // Set loading ke false
   const [error, setError] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editedValues, setEditedValues] = useState({});
-  const { session } = useAuth();
+  // const { session } = useAuth();
   
-  // Fungsi untuk memuat data harga jual dari Supabase
-  const loadHargaJualData = async () => {
-    if (!session) return;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const fetchedData = await fetchHargaJual(session.user.id);
-      setHargaJualData(fetchedData);
-      console.log('Data harga jual berhasil dimuat:', fetchedData);
-    } catch (err) {
-      console.error('Gagal memuat data harga jual:', err.message);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Fungsi untuk memformat angka menjadi format mata uang Rupiah
   const formatCurrency = (number) => {
+    // Keterangan: Memastikan number adalah angka, jika tidak kembalikan Rp0
     if (typeof number !== 'number') return 'Rp0';
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -58,36 +71,50 @@ export default function HargaJual() {
     console.log('Membatalkan mode edit.');
   };
   
-  // Fungsi untuk menyimpan harga jual
+  // Fungsi dummy untuk menyimpan harga jual
   const handleSave = async (id) => {
     console.log(`Mencoba menyimpan perubahan untuk item ID: ${id}`);
+    console.log('Dummy save: Data tidak akan disimpan ke database.');
     setLoading(true);
     setError(null);
     
+    // Keterangan: Mensimulasikan proses penyimpanan
     try {
       const { harga_jual_dasar, harga_jual_uom } = editedValues;
 
-      // Keterangan: Memastikan semua harga adalah angka positif
-      if (harga_jual_dasar < 0 || harga_jual_uom.some(uom => uom.harga < 0)) {
+      if (harga_jual_dasar < 0 || (harga_jual_uom && harga_jual_uom.some(uom => uom.harga < 0))) {
         setError('Harga tidak boleh bernilai negatif.');
         setLoading(false);
         return;
       }
 
-      await updateHargaJual(id, harga_jual_dasar, harga_jual_uom);
-      await loadHargaJualData();
+      // Keterangan: Mengubah state lokal dengan data yang sudah di-edit
+      setHargaJualData(prevData =>
+        prevData.map(item =>
+          item.id === id
+            ? {
+                ...item,
+                harga_jual_dasar: harga_jual_dasar,
+                uom_list: harga_jual_uom || null,
+              }
+            : item
+        )
+      );
+      
       setEditingId(null);
       setEditedValues({});
-      console.log(`Perubahan untuk item ID: ${id} berhasil disimpan.`);
+      console.log(`Perubahan untuk item ID: ${id} berhasil disimpan secara dummy.`);
     } catch (err) {
       console.error('Gagal menyimpan perubahan:', err.message);
       setError(err.message);
+    } finally {
       setLoading(false);
     }
   };
   
   // Fungsi untuk menangani perubahan input harga jual dasar
   const handleBasePriceChange = (e) => {
+    // Keterangan: Menghapus semua karakter non-angka dan mengonversi ke Number
     const value = Number(e.target.value.replace(/[^0-9]/g, ''));
     setEditedValues(prev => ({
       ...prev,
@@ -98,9 +125,12 @@ export default function HargaJual() {
 
   // Fungsi untuk menangani perubahan input harga jual UOM
   const handleUomPriceChange = (index, e) => {
+    // Keterangan: Menghapus semua karakter non-angka dan mengonversi ke Number
     const value = Number(e.target.value.replace(/[^0-9]/g, ''));
     const newUomPrices = [...editedValues.harga_jual_uom];
-    newUomPrices[index].harga = value;
+    if (newUomPrices[index]) {
+      newUomPrices[index].harga = value;
+    }
     setEditedValues(prev => ({
       ...prev,
       harga_jual_uom: newUomPrices
@@ -108,17 +138,16 @@ export default function HargaJual() {
     console.log(`Harga UOM di index ${index} diubah menjadi: ${value}`);
   };
 
-  // Memuat data saat komponen pertama kali dirender atau sesi berubah
-  useEffect(() => {
-    loadHargaJualData();
-  }, [session]);
+  // Keterangan: Tidak ada useEffect untuk memuat data dari database
+  console.log('Komponen HargaJual dirender dengan data dummy.');
 
-  const filteredData = hargaJualData
-    .filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const filteredData = useMemo(() => {
+    return hargaJualData
+      .filter(item => 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [hargaJualData, searchTerm]);
 
   return (
     <div className="flex flex-col h-full">

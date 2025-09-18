@@ -1,55 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Loader2 } from 'lucide-react';
 import TambahStokModal from './modals/TambahStok.jsx';
-import { useAuth } from '../../../context/AuthContext.jsx';
-import { fetchStockHistory } from '../../../utils/supabaseDb.js';
+// import { useAuth } from '../../../context/AuthContext.jsx';
+// import { fetchStockHistory } from '../../../utils/supabaseDb.js';
+
+// Data dummy untuk simulasi riwayat stok
+const dummyStockHistory = [
+  {
+    id: 1,
+    created_at: '2024-05-20T10:00:00.000Z',
+    product_sku: 'KSGA',
+    quantity: 10,
+    total_quantity_base_unit: 10,
+    product_name: 'Kopi Susu Gula Aren',
+    product_unit: 'bungkus',
+    base_unit: 'bungkus',
+  },
+  {
+    id: 2,
+    created_at: '2024-05-19T15:30:00.000Z',
+    product_sku: 'CRCK',
+    quantity: 5,
+    total_quantity_base_unit: 5,
+    product_name: 'Croissant Cokelat',
+    product_unit: 'pcs',
+    base_unit: 'pcs',
+  },
+  {
+    id: 3,
+    created_at: '2024-05-18T08:45:00.000Z',
+    product_sku: 'AM600',
+    quantity: 2,
+    total_quantity_base_unit: 48, // 2 dus x 24 botol
+    product_name: 'Air Mineral 600ml',
+    product_unit: 'dus',
+    base_unit: 'botol',
+  },
+];
 
 export default function StokMasuk() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [stockHistory, setStockHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
 
-  const { session } = useAuth();
-
-  // Keterangan: Fungsi untuk memuat riwayat stok dari database
-  const loadStockHistory = async () => {
-    if (!session?.user?.id) {
-      console.log("User tidak terautentikasi, tidak bisa memuat riwayat stok.");
-      return;
-    }
-
+  // Keterangan: Menggunakan useEffect untuk memuat data dummy saat komponen dimuat
+  useEffect(() => {
     setLoading(true);
     setError(null);
-    try {
-      const fetchedHistory = await fetchStockHistory(session.user.id, selectedDate, selectedDate);
-      setStockHistory(fetchedHistory);
-      console.log('Riwayat stok berhasil dimuat:', fetchedHistory);
-    } catch (err) {
-      console.error('Gagal memuat riwayat stok:', err.message);
-      setError(err.message);
-    } finally {
+    console.log('Menggunakan data dummy untuk riwayat stok.');
+    // Keterangan: Mensimulasikan loading selama 500ms
+    setTimeout(() => {
+      setStockHistory(dummyStockHistory);
       setLoading(false);
-    }
-  };
+    }, 500);
+  }, []);
 
-  // Keterangan: Panggil fungsi pemuat data saat komponen dimuat atau tanggal berubah
-  useEffect(() => {
-    loadStockHistory();
-  }, [session, selectedDate]);
-
-  const filteredHistory = stockHistory
-    .filter(item => 
-      item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      item.product_sku.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const filteredHistory = useMemo(() => {
+    return stockHistory
+      .filter(item => {
+        const itemDate = new Date(item.created_at).toISOString().split('T')[0];
+        const dateMatch = !selectedDate || itemDate === selectedDate;
+        const searchMatch = item.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.product_sku.toLowerCase().includes(searchTerm.toLowerCase());
+        return dateMatch && searchMatch;
+      })
+  }, [stockHistory, searchTerm, selectedDate]);
 
   const openTambahStokModal = () => setModalOpen(true);
   const closeTambahStokModal = () => {
     setModalOpen(false);
-    loadStockHistory(); // Muat ulang data setelah modal ditutup
+    // Keterangan: Tidak perlu memuat ulang data karena menggunakan data dummy
   };
 
   return (
@@ -66,6 +89,7 @@ export default function StokMasuk() {
             className="input text-sm w-fit"
             value={selectedDate}
             onChange={(e) => {
+              setSearchTerm('');
               console.log('Tanggal dipilih:', e.target.value);
               setSelectedDate(e.target.value);
             }}
