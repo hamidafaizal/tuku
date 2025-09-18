@@ -1,48 +1,34 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Loader2, Edit, Save, X } from 'lucide-react';
-// import { useAuth } from '../../../context/AuthContext';
-// import { fetchHargaJual, updateHargaJual } from '../../../utils/supabaseDb';
-
-// Data dummy untuk simulasi
-const dummyData = [
-  {
-    id: 1,
-    name: 'Kopi Susu Gula Aren',
-    unit: 'bungkus',
-    harga_jual_dasar: 15000,
-    uom_list: [
-      { uomList: 'slop', uomQuantity: 10, harga: 140000 },
-      { uomList: 'karton', uomQuantity: 100, harga: 1300000 },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Croissant Cokelat',
-    unit: 'pcs',
-    harga_jual_dasar: 12000,
-    uom_list: null,
-  },
-  {
-    id: 3,
-    name: 'Air Mineral 600ml',
-    unit: 'botol',
-    harga_jual_dasar: 3000,
-    uom_list: [
-      { uomList: 'dus', uomQuantity: 24, harga: 65000 },
-    ],
-  },
-];
+import { fetchHargaJual, updateHargaJual } from '../../../utils/supabaseDb';
 
 // Halaman Harga Jual
 export default function HargaJual() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [hargaJualData, setHargaJualData] = useState(dummyData); // Gunakan data dummy
-  const [loading, setLoading] = useState(false); // Set loading ke false
+  const [hargaJualData, setHargaJualData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editedValues, setEditedValues] = useState({});
   // const { session } = useAuth();
   
+  // Keterangan: Memuat data harga jual dari Supabase saat komponen dimuat
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error } = await fetchHargaJual();
+      if (error) {
+        setError(error.message);
+        console.error('Gagal memuat data harga jual:', error);
+      } else {
+        setHargaJualData(data);
+      }
+      setLoading(false);
+    };
+    loadData();
+  }, []);
+
   // Fungsi untuk memformat angka menjadi format mata uang Rupiah
   const formatCurrency = (number) => {
     // Keterangan: Memastikan number adalah angka, jika tidak kembalikan Rp0
@@ -59,6 +45,7 @@ export default function HargaJual() {
     setEditingId(item.id);
     setEditedValues({
       harga_jual_dasar: item.harga_jual_dasar,
+      // Keterangan: uom_list mungkin null, jadi pastikan array kosong jika tidak ada
       harga_jual_uom: item.uom_list ? [...item.uom_list] : []
     });
     console.log(`Memulai mode edit untuk item ID: ${item.id}`);
@@ -71,39 +58,47 @@ export default function HargaJual() {
     console.log('Membatalkan mode edit.');
   };
   
-  // Fungsi dummy untuk menyimpan harga jual
+  // Fungsi untuk menyimpan harga jual ke database
   const handleSave = async (id) => {
     console.log(`Mencoba menyimpan perubahan untuk item ID: ${id}`);
-    console.log('Dummy save: Data tidak akan disimpan ke database.');
     setLoading(true);
     setError(null);
-    
-    // Keterangan: Mensimulasikan proses penyimpanan
-    try {
-      const { harga_jual_dasar, harga_jual_uom } = editedValues;
 
-      if (harga_jual_dasar < 0 || (harga_jual_uom && harga_jual_uom.some(uom => uom.harga < 0))) {
-        setError('Harga tidak boleh bernilai negatif.');
-        setLoading(false);
-        return;
+    const currentItem = hargaJualData.find(item => item.id === id);
+    const { harga_jual_dasar, harga_jual_uom } = editedValues;
+    
+    if (harga_jual_dasar < 0 || (harga_jual_uom && harga_jual_uom.some(uom => uom.harga < 0))) {
+      setError('Harga tidak boleh bernilai negatif.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const updates = {
+        // Keterangan: Tambahkan productId ke objek updates
+        productId: id,
+        basePrice: harga_jual_dasar,
+        // Keterangan: Mengirim array update untuk UOM
+        uomUpdates: harga_jual_uom,
+      };
+
+      const { success, error } = await updateHargaJual(updates);
+      if (!success) {
+        throw new Error(error.message);
       }
 
-      // Keterangan: Mengubah state lokal dengan data yang sudah di-edit
-      setHargaJualData(prevData =>
-        prevData.map(item =>
-          item.id === id
-            ? {
-                ...item,
-                harga_jual_dasar: harga_jual_dasar,
-                uom_list: harga_jual_uom || null,
-              }
-            : item
-        )
-      );
-      
+      // Keterangan: Memuat ulang data dari database setelah penyimpanan berhasil
+      await new Promise(resolve => setTimeout(resolve, 500)); // Delay sedikit untuk memastikan data termuat
+      const { data, error: fetchError } = await fetchHargaJual();
+      if (fetchError) {
+        setError('Data berhasil disimpan, namun gagal memuat ulang.');
+      } else {
+        setHargaJualData(data);
+      }
+
       setEditingId(null);
       setEditedValues({});
-      console.log(`Perubahan untuk item ID: ${id} berhasil disimpan secara dummy.`);
+      console.log(`Perubahan untuk item ID: ${id} berhasil disimpan ke database.`);
     } catch (err) {
       console.error('Gagal menyimpan perubahan:', err.message);
       setError(err.message);
@@ -137,9 +132,6 @@ export default function HargaJual() {
     }));
     console.log(`Harga UOM di index ${index} diubah menjadi: ${value}`);
   };
-
-  // Keterangan: Tidak ada useEffect untuk memuat data dari database
-  console.log('Komponen HargaJual dirender dengan data dummy.');
 
   const filteredData = useMemo(() => {
     return hargaJualData
@@ -252,7 +244,7 @@ export default function HargaJual() {
                             </button>
                           </div>
                         ) : (
-                          <button onClick={() => handleEditClick(item)} className="icon-btn hover:bg-slate-100" title="Edit Harga">
+                          <button onClick={() => handleEditClick(item)} className="icon-btn text-slate-700 hover:bg-slate-100" title="Edit Harga">
                             <Edit className="w-4 h-4" />
                           </button>
                         )}

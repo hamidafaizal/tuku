@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { X, Save, Camera, Sparkles, Info, Plus, Loader2 } from 'lucide-react';
 import { useBarcodeScanner } from '../../../../hooks/useBarcodeScanner.js';
 import InlineScanner from '../../../../components/cashier/InlineScanner.jsx';
+import { insertNewProduct } from '../../../../utils/supabaseDb.js';
 
 // Komponen Modal untuk menambah barang baru
-export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existingItems = [], saveStatus }) {
+export default function TambahBarangBaruModal({ isOpen, onClose, existingItems = [] }) {
   const [formData, setFormData] = useState({
     name: '',
     unit: '',
@@ -12,10 +13,11 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
     uom: [{ uomList: '', uomQuantity: 0, sku: '' }],
   });
   const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
-  const [currentScannerTarget, setCurrentScannerTarget] = useState(null); 
+  const [currentScannerTarget, setCurrentScannerTarget] = useState(null);
   const [isNameExists, setIsNameExists] = useState(false);
   const [isUomListEnabled, setIsUomListEnabled] = useState(false);
   const [localError, setLocalError] = useState(null);
+  const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
 
   useEffect(() => {
     if (isOpen) {
@@ -25,6 +27,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
       setIsNameExists(false);
       setIsUomListEnabled(false);
       setLocalError(null);
+      setSaveStatus({ loading: false, error: null });
     }
   }, [isOpen]);
 
@@ -58,7 +61,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
       }));
     }
   };
-  
+
   const handleRemoveUom = (index) => {
     const newUom = formData.uom.filter((_, i) => i !== index);
     setFormData(prev => ({ ...prev, uom: newUom }));
@@ -86,7 +89,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
     setCameraScannerOpen(false);
     setCurrentScannerTarget(null);
   };
-  
+
   const handleBarcodeScan = (scannedCode) => {
     if (isUomListEnabled) {
       const newUom = [...formData.uom];
@@ -105,7 +108,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
       .join('')
       .toUpperCase();
     const uniqueSuffix = Date.now().toString().slice(-4);
-    
+
     if (index === null) {
         const newSku = `${nameAcronym}${uniqueSuffix}`;
         setFormData(prev => ({ ...prev, sku: newSku }));
@@ -117,23 +120,14 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
     }
   };
 
+  // Keterangan: Mengganti fungsi handleSubmit untuk berinteraksi dengan Supabase
   const handleSubmit = async () => {
     setLocalError(null);
+    setSaveStatus({ loading: true, error: null });
+
     if (!formData.name || !formData.unit || !formData.sku) {
       setLocalError("Nama, satuan dasar, dan SKU utama tidak boleh kosong.");
-      return;
-    }
-    
-    const allExistingSkus = new Set(existingItems.map(item => item.sku.toLowerCase()));
-    existingItems.forEach(item => {
-      if (item.uom) {
-        item.uom.forEach(uomItem => allExistingSkus.add(uomItem.sku.toLowerCase()));
-      }
-    });
-
-    const isBaseSkuExists = allExistingSkus.has(formData.sku.toLowerCase());
-    if (isBaseSkuExists) {
-      setLocalError(`SKU utama "${formData.sku}" sudah ada.`);
+      setSaveStatus({ loading: false, error: null });
       return;
     }
 
@@ -141,29 +135,33 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
       const isUomValid = formData.uom.every(uom => uom.uomList && uom.uomQuantity > 0 && uom.sku);
       if (!isUomValid) {
         setLocalError("Semua input UOM List, Jumlah Satuan Dasar, dan SKU harus terisi jika diaktifkan.");
+        setSaveStatus({ loading: false, error: null });
         return;
       }
-      
+
       const uomSkus = formData.uom.map(uom => uom.sku.toLowerCase());
       const hasDuplicateUomSku = new Set(uomSkus).size !== uomSkus.length;
       if (hasDuplicateUomSku) {
         setLocalError("SKU dalam UOM List tidak boleh duplikat.");
-        return;
-      }
-
-      const duplicatedUomSkusInDb = uomSkus.filter(sku => allExistingSkus.has(sku));
-      if (duplicatedUomSkusInDb.length > 0) {
-        setLocalError(`SKU UOM list berikut sudah ada di database: ${duplicatedUomSkusInDb.join(', ')}.`);
+        setSaveStatus({ loading: false, error: null });
         return;
       }
     }
-    
-    // Perubahan di sini: Mengirim data `isUomListEnabled` dan memfilter UOM yang kosong
-    const dataToSave = isUomListEnabled 
+
+    const dataToSave = isUomListEnabled
       ? { ...formData, uom: formData.uom.filter(u => u.uomList && u.uomQuantity > 0 && u.sku) }
       : { ...formData, uom: null };
 
-    onSave(dataToSave);
+    const { data, error } = await insertNewProduct(dataToSave);
+    if (error) {
+      console.error('Gagal menyimpan produk ke Supabase:', error);
+      setSaveStatus({ loading: false, error: error.message });
+      setLocalError(`Gagal menyimpan: ${error.message}`);
+    } else {
+      console.log('Produk berhasil disimpan ke Supabase:', data);
+      setSaveStatus({ loading: false, error: null });
+      onClose(); // Tutup modal setelah berhasil
+    }
   };
 
   if (!isOpen) return null;
@@ -249,7 +247,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                 Buat Kode Barang Satuan Dasar
               </button>
             </div>
-            
+
             {/* Toggle untuk UOM List dengan info icon */}
             <div className="flex items-center gap-2">
               <input
@@ -374,7 +372,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, onSave, existin
                 )}
               </div>
             )}
-            
+
             {(saveStatus.loading || saveStatus.error || localError) && (
               <div className="p-3 text-sm rounded-lg">
                 {saveStatus.loading ? (

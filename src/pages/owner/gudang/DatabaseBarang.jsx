@@ -2,18 +2,12 @@ import { useState, useEffect } from 'react';
 import { Plus, Loader2, Search, Trash2, X } from 'lucide-react';
 import TambahBarangBaruModal from './modals/TambahBarangBaru.jsx';
 import ConfirmationModal from './modals/ConfirmationModal.jsx';
-
-// Data produk dummy
-const DUMMY_PRODUCTS = [
-  { id: 1, name: 'Kopi Susu Gula Aren', unit: 'pcs', sku: 'KSGA-001', uom: null },
-  { id: 2, name: 'Croissant Cokelat', unit: 'pcs', sku: 'CRCK-001', uom: [{ uomList: 'box', uomQuantity: 12, sku: 'CRCK-BOX-001' }] },
-  { id: 3, name: 'Air Mineral 600ml', unit: 'botol', sku: 'AM-001', uom: [{ uomList: 'dus', uomQuantity: 24, sku: 'AM-DUS-001' }] },
-];
+import { fetchProductsWithUom, deleteProduct } from '../../../utils/supabaseDb.js';
 
 export default function DatabaseBarang() {
   const [isModalOpen, setModalOpen] = useState(false);
-  const [products, setProducts] = useState(DUMMY_PRODUCTS);
-  const [loading, setLoading] = useState(false); // Mengubah ke false karena menggunakan data dummy
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saveStatus, setSaveStatus] = useState({ loading: false, error: null });
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,56 +16,58 @@ export default function DatabaseBarang() {
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Keterangan: Fungsi untuk menambah produk baru ke data dummy
+  // Keterangan: Fungsi untuk mengambil data produk dari Supabase
+  const fetchProducts = async () => {
+    setLoading(true);
+    const { data, error } = await fetchProductsWithUom();
+    if (error) {
+      setError('Gagal memuat data produk.');
+      console.error('Error fetching products:', error);
+    } else {
+      setProducts(data);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  // Keterangan: Fungsi untuk menambah produk baru
   const handleSaveNewItem = async (newItemData) => {
     setSaveStatus({ loading: true, error: null });
-    // Simulasi penundaan penyimpanan
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Validasi duplikasi SKU secara lokal
-    const allExistingSkus = new Set(products.map(item => item.sku.toLowerCase()));
-    products.forEach(item => {
-      if (item.uom) {
-        item.uom.forEach(uomItem => allExistingSkus.add(uomItem.sku.toLowerCase()));
-      }
-    });
-    
-    if (allExistingSkus.has(newItemData.sku.toLowerCase())) {
-        setSaveStatus({ loading: false, error: `SKU utama "${newItemData.sku}" sudah ada.` });
-        return;
-    }
-    
-    if (newItemData.uom) {
-      const duplicatedUomSkus = newItemData.uom.filter(uomItem => allExistingSkus.has(uomItem.sku.toLowerCase()));
-      if (duplicatedUomSkus.length > 0) {
-        setSaveStatus({ loading: false, error: `SKU UOM list berikut sudah ada: ${duplicatedUomSkus.map(u => u.sku).join(', ')}.` });
-        return;
-      }
-    }
-
-    setProducts(prev => [...prev, { ...newItemData, id: prev.length + 1 }]);
-    setSaveStatus({ loading: false, error: null });
-    setModalOpen(false);
+    // Keterangan: Data dikirim ke modal, tidak disimpan di sini lagi
   };
 
   const handleAddItem = () => setModalOpen(true);
   const handleCloseModal = () => {
     setModalOpen(false);
     setSaveStatus({ loading: false, error: null });
+    // Memuat ulang data setelah modal ditutup
+    fetchProducts();
   };
-  
+
   const openDeleteConfirmation = (id) => {
     setItemToDelete(id);
     setIsConfirmationModalOpen(true);
   };
 
+  // Keterangan: Menghapus satu item dari database
   const handleDeleteItem = async () => {
     if (!itemToDelete) return;
-    setProducts(prev => prev.filter(p => p.id !== itemToDelete));
+    setLoading(true);
+    const { error } = await deleteProduct(itemToDelete);
+    if (error) {
+      console.error('Gagal menghapus item:', error);
+      setError('Gagal menghapus item.');
+    } else {
+      await fetchProducts();
+    }
     setIsConfirmationModalOpen(false);
     setItemToDelete(null);
+    setLoading(false);
   };
-  
+
   const handleSelectItem = (id) => {
     const newSelectedItems = new Set(selectedItems);
     if (newSelectedItems.has(id)) {
@@ -81,15 +77,25 @@ export default function DatabaseBarang() {
     }
     setSelectedItems(newSelectedItems);
   };
-  
+
+  // Keterangan: Menghapus item yang dipilih secara massal dari database
   const handleDeleteSelectedItems = async () => {
     if (selectedItems.size === 0) return;
-    setProducts(prev => prev.filter(p => !selectedItems.has(p.id)));
+    setLoading(true);
+    const deletePromises = Array.from(selectedItems).map(id => deleteProduct(id));
+    const results = await Promise.all(deletePromises);
+    const hasError = results.some(result => result.error);
+    if (hasError) {
+      console.error('Beberapa item gagal dihapus.');
+      setError('Beberapa item gagal dihapus.');
+    }
+    await fetchProducts();
     setSelectedItems(new Set());
     setIsBulkDeleteMode(false);
     setIsConfirmationModalOpen(false);
+    setLoading(false);
   };
-  
+
   const handleSelectAll = () => {
     if (selectedItems.size === filteredProducts.length) {
       setSelectedItems(new Set());
@@ -100,11 +106,11 @@ export default function DatabaseBarang() {
   };
 
   const filteredProducts = products
-    .filter(product => 
+    .filter(product =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => a.name.localeCompare(b.name));
-    
+
   const isAllSelected = selectedItems.size === filteredProducts.length && filteredProducts.length > 0;
 
   return (
@@ -150,17 +156,17 @@ export default function DatabaseBarang() {
           )}
         </div>
         <div className="relative mt-4">
-          <input 
-            type="text" 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            className="input pl-10" 
-            placeholder="Cari nama barang..." 
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input pl-10"
+            placeholder="Cari nama barang..."
           />
           <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto pb-20">
         {loading && (
           <div className="flex justify-center items-center py-10 text-slate-500">
@@ -214,10 +220,10 @@ export default function DatabaseBarang() {
                         </td>
                       )}
                       <td>{product.name}</td>
-                      <td>{product.unit}</td>
-                      <td>{product.sku}</td>
+                      <td>{product.base_unit}</td>
+                      <td>{product.base_sku}</td>
                       <td>
-                        {product.uom ? (
+                        {product.uom && product.uom.length > 0 ? (
                           <ul className="list-disc list-inside">
                             {product.uom.map((item, i) => (
                               <li key={i}>
@@ -271,7 +277,7 @@ export default function DatabaseBarang() {
                     )}
                     <div className="flex-1">
                       <h4 className="font-bold text-lg">{product.name}</h4>
-                      <p className="text-sm text-slate-500">{product.unit}</p>
+                      <p className="text-sm text-slate-500">{product.base_unit}</p>
                     </div>
                     {!isBulkDeleteMode && (
                       <button onClick={() => openDeleteConfirmation(product.id)} className="icon-btn text-rose-500 hover:bg-rose-100" title="Hapus Barang">
@@ -282,9 +288,9 @@ export default function DatabaseBarang() {
                   <div className="divider" />
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-semibold text-slate-600">SKU:</span>
-                    <span>{product.sku}</span>
+                    <span>{product.base_sku}</span>
                   </div>
-                  {product.uom && (
+                  {product.uom && product.uom.length > 0 && (
                     <>
                       <div className="divider" />
                       <div className="space-y-2">
@@ -305,7 +311,7 @@ export default function DatabaseBarang() {
             </div>
           </>
         )}
-        
+
         {!loading && filteredProducts.length === 0 && !error && (
           <p className="text-center text-slate-500 py-10">Tidak ada data barang yang ditemukan.</p>
         )}
@@ -314,7 +320,7 @@ export default function DatabaseBarang() {
       <TambahBarangBaruModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSave={handleSaveNewItem}
+        onSave={handleSaveNewItem} // Fungsi ini sekarang hanya placeholder
         existingItems={products}
         saveStatus={saveStatus}
       />
@@ -331,8 +337,8 @@ export default function DatabaseBarang() {
         }}
         onConfirm={itemToDelete ? handleDeleteItem : handleDeleteSelectedItems}
         title={itemToDelete ? "Konfirmasi Hapus Barang" : "Konfirmasi Hapus Barang Massal"}
-        message={itemToDelete ? 
-          `Apakah Anda yakin ingin menghapus barang ini? Tindakan ini tidak dapat diurungkan.` : 
+        message={itemToDelete ?
+          `Apakah Anda yakin ingin menghapus barang ini? Tindakan ini tidak dapat diurungkan.` :
           `Apakah Anda yakin ingin menghapus ${selectedItems.size} barang yang dipilih? Tindakan ini tidak dapat diurungkan.`}
         confirmText={itemToDelete ? "Ya, Hapus" : `Ya, Hapus (${selectedItems.size})`}
       />
