@@ -59,6 +59,8 @@ export async function insertNewProduct(newItemData) {
     cost_price: 0,
   });
   
+  let uomResult = null; // Inisialisasi uomResult dengan nilai null
+
   // Jika ada data UOM, masukkan ke tabel uom dan siapkan data prices
   if (uom && uom.length > 0) {
     const uomDataToInsert = uom.map(uomItem => ({
@@ -68,7 +70,7 @@ export async function insertNewProduct(newItemData) {
       quantity_per_uom: uomItem.uomQuantity,
     }));
     
-    const { data: uomResult, error: uomError } = await supabase
+    const { data: result, error: uomError } = await supabase
       .from('uom')
       .insert(uomDataToInsert)
       .select();
@@ -79,6 +81,7 @@ export async function insertNewProduct(newItemData) {
       await supabase.from('products').delete().eq('id', product.id);
       return { data: null, error: uomError };
     }
+    uomResult = result; // Tetapkan nilai uomResult di sini
 
     uomResult.forEach(uomItem => {
       priceInsertData.push({
@@ -105,7 +108,7 @@ export async function insertNewProduct(newItemData) {
   }
 
   console.log('Produk baru, UOM, dan harga berhasil disimpan.');
-  return { data: { product, uom: uomResult || null, prices: priceResult }, error: null };
+  return { data: { product, uom: uomResult, prices: priceResult }, error: null };
 }
 
 // Keterangan: Fungsi untuk menghapus produk berdasarkan ID

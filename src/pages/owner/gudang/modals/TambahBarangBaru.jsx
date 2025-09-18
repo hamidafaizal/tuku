@@ -122,12 +122,15 @@ export default function TambahBarangBaruModal({ isOpen, onClose, existingItems =
 
   // Keterangan: Mengganti fungsi handleSubmit untuk berinteraksi dengan Supabase
   const handleSubmit = async () => {
+    console.log('--- handleSubmit dimulai ---');
     setLocalError(null);
     setSaveStatus({ loading: true, error: null });
+    console.log('Status set ke loading: true');
 
     if (!formData.name || !formData.unit || !formData.sku) {
       setLocalError("Nama, satuan dasar, dan SKU utama tidak boleh kosong.");
       setSaveStatus({ loading: false, error: null });
+      console.log('Validasi gagal: field kosong. Status loading set ke false.');
       return;
     }
 
@@ -136,6 +139,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, existingItems =
       if (!isUomValid) {
         setLocalError("Semua input UOM List, Jumlah Satuan Dasar, dan SKU harus terisi jika diaktifkan.");
         setSaveStatus({ loading: false, error: null });
+        console.log('Validasi gagal: UOM List tidak valid. Status loading set ke false.');
         return;
       }
 
@@ -144,6 +148,7 @@ export default function TambahBarangBaruModal({ isOpen, onClose, existingItems =
       if (hasDuplicateUomSku) {
         setLocalError("SKU dalam UOM List tidak boleh duplikat.");
         setSaveStatus({ loading: false, error: null });
+        console.log('Validasi gagal: SKU UOM duplikat. Status loading set ke false.');
         return;
       }
     }
@@ -152,16 +157,23 @@ export default function TambahBarangBaruModal({ isOpen, onClose, existingItems =
       ? { ...formData, uom: formData.uom.filter(u => u.uomList && u.uomQuantity > 0 && u.sku) }
       : { ...formData, uom: null };
 
+    console.log('Mencoba memanggil insertNewProduct:', dataToSave);
     const { data, error } = await insertNewProduct(dataToSave);
+    console.log('insertNewProduct selesai. Hasil:', { data, error });
+
     if (error) {
       console.error('Gagal menyimpan produk ke Supabase:', error);
       setSaveStatus({ loading: false, error: error.message });
       setLocalError(`Gagal menyimpan: ${error.message}`);
+      console.log('Penyimpanan gagal. Status loading set ke false.');
     } else {
       console.log('Produk berhasil disimpan ke Supabase:', data);
+      console.log('Mencoba mengatur status loading ke false...');
       setSaveStatus({ loading: false, error: null });
+      console.log('Status loading berhasil diubah. Sekarang memanggil onClose()...');
       onClose(); // Tutup modal setelah berhasil
     }
+    console.log('--- handleSubmit selesai ---');
   };
 
   if (!isOpen) return null;
