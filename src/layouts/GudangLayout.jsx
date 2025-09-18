@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Package, Truck, BarChart3, DatabaseZap } from 'lucide-react';
+// Import icon yang diperlukan, termasuk icon mata uang rupiah (DollarSign atau CurrencyDollar dari lucide-react)
+import { Package, Truck, DatabaseZap, DollarSign } from 'lucide-react';
 import BottomNav from '../components/owner/BottomNav.jsx';
 
 // Halaman-halaman turunan Gudang
 import DatabaseBarang from '../pages/owner/gudang/DatabaseBarang.jsx';
 import ProductList from '../pages/owner/gudang/ProductList.jsx';
 import StokMasuk from '../pages/owner/gudang/StokMasuk.jsx';
+// Keterangan: Mengimpor komponen HargaJual yang baru
+import HargaJual from '../pages/owner/gudang/HargaJual.jsx';
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Gudang
 export default function GudangLayout() {
@@ -17,7 +20,8 @@ export default function GudangLayout() {
   const gudangMenuItems = [
     { key: 'productList', label: 'Produk', icon: Package },
     { key: 'stockIn', label: 'Stok Masuk', icon: Truck },
-    { key: 'report', label: 'Laporan', icon: BarChart3 },
+    // Mengubah label dari 'Laporan' menjadi 'Harga Jual' dan ikonnya menjadi DollarSign
+    { key: 'hargaJual', label: 'Harga Jual', icon: DollarSign },
     { key: 'database', label: 'Database', icon: DatabaseZap },
   ];
 
@@ -36,8 +40,9 @@ export default function GudangLayout() {
         return <StokMasuk />;
       case 'database':
         return <DatabaseBarang />;
-      // case 'report':
-      //   return <Laporan />; // Placeholder untuk menu lain
+      // Keterangan: Merender komponen HargaJual yang sudah diimpor
+      case 'hargaJual':
+        return <HargaJual />;
       default:
         return <DatabaseBarang />;
     }
