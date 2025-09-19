@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, CheckCircle, CreditCard, Landmark, Printer, PlusCircle, Camera } from 'lucide-react';
 
 // Komponen untuk animasi centang sukses
@@ -64,6 +64,8 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
   const [amountPaid, setAmountPaid] = useState(0);
   const [change, setChange] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false); // State untuk layar sukses
+  const photoInputRef = useRef(null); // Keterangan: Referensi untuk input file foto
+  const [isPhotoTaken, setIsPhotoTaken] = useState(false); // Keterangan: State untuk melacak apakah foto sudah diambil
 
   // Reset state saat modal dibuka
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
       setChange(0);
       setActiveTab('tunai');
       setIsSuccess(false); // Reset status sukses
+      setIsPhotoTaken(false); // Keterangan: Reset status foto saat modal dibuka
     }
   }, [isOpen]);
 
@@ -91,6 +94,40 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
     console.log(`Jumlah bayar diubah menjadi: ${Number(numericValue)}`);
   };
 
+  // Keterangan: Handler baru untuk memicu input file foto
+  const handlePhotoProofClick = () => {
+    console.log('Tombol "Ambil Foto" diklik.');
+    // Keterangan: Picu klik pada input file tersembunyi
+    photoInputRef.current.click();
+  };
+  
+  // Keterangan: Handler baru untuk menyimpan foto yang diambil
+  const handlePhotoTaken = (event) => {
+    console.log('Foto berhasil diambil.');
+    const file = event.target.files[0];
+    if (file) {
+      // Keterangan: Buat URL objek dari file
+      const imageUrl = URL.createObjectURL(file);
+      
+      // Keterangan: Buat tautan unduhan dan picu klik
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      // Keterangan: Beri nama file yang unik
+      link.download = `bukti-pembayaran-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Keterangan: Hapus URL objek setelah selesai untuk membersihkan memori
+      URL.revokeObjectURL(imageUrl);
+      
+      setIsPhotoTaken(true);
+    }
+    // Keterangan: Reset input file agar bisa mengambil foto lagi
+    event.target.value = '';
+  };
+  
+
   // Handler saat pembayaran diselesaikan
   const handleSuccess = () => {
     console.log(`Proses pembayaran sukses dengan metode ${activeTab}`);
@@ -106,11 +143,6 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
   const handlePrintReceipt = () => {
     console.log('Fungsi print nota dummy dijalankan.');
     // Logika print akan ditambahkan di sini
-  };
-
-  const handlePhotoProofClick = () => {
-    console.log('Tombol "Foto bukti pembayaran" diklik. Buka file picker.');
-    // Logika untuk membuka file picker akan ditambahkan di sini.
   };
 
   if (!isOpen) return null;
@@ -197,10 +229,26 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
                   <p className="text-slate-600">
                     Konfirmasi jika pelanggan sudah melakukan transfer.
                   </p>
-                  <button onClick={handlePhotoProofClick} className="btn w-full">
+                  
+                  {/* Keterangan: Tombol dan input tersembunyi untuk mengambil foto */}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    ref={photoInputRef}
+                    onChange={handlePhotoTaken}
+                    className="hidden"
+                  />
+                  
+                  <button onClick={handlePhotoProofClick} className="btn w-full" type="button">
                     <Camera className="w-4 h-4" />
-                    <span>Foto Bukti Pembayaran (Opsional)</span>
+                    <span>Ambil Foto Bukti Pembayaran</span>
                   </button>
+                  {isPhotoTaken && (
+                    <p className="text-xs text-sky-600 mt-2">
+                      Foto bukti pembayaran berhasil diambil dan disimpan.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -220,4 +268,3 @@ export default function PaymentModal({ isOpen, onClose, totalAmount, onSuccess }
     </div>
   );
 }
-

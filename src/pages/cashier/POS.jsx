@@ -68,12 +68,12 @@ export default function POS() {
       setSearchTerm(''); // Kosongkan input setelah berhasil
       console.log(`Produk ditemukan dan ditambahkan:`, product.name);
     } else {
-      console.log(`Produk dengan kode "${code}" tidak ditemukan.`);
+      console.log(`Produk dengan kode atau nama "${code}" tidak ditemukan.`);
       alert(`Produk dengan kode atau nama "${code}" tidak ditemukan atau harga jualnya belum diatur.`);
     }
   };
 
-  // Menggunakan custom hook untuk scanner fisik
+  // Keterangan: Menggunakan custom hook untuk scanner fisik
   useBarcodeScanner(findProductAndAddToCart);
 
   // Fungsi yang dipanggil saat search form di-submit (Enter)
@@ -82,6 +82,12 @@ export default function POS() {
     if (searchTerm.trim()) {
       findProductAndAddToCart(searchTerm.trim());
     }
+  };
+  
+  // Keterangan: Fungsi untuk menangani klik pada saran
+  const handleSuggestionClick = (product) => {
+    findProductAndAddToCart(product.sku); // Tambahkan produk ke keranjang berdasarkan SKU
+    setSearchTerm(''); // Kosongkan input pencarian
   };
 
   // Fungsi untuk mengubah jumlah barang di keranjang
@@ -135,7 +141,15 @@ export default function POS() {
       await loadProducts(); // Memuat ulang data produk untuk update stok
     }
   };
-
+  
+  // Keterangan: Menyiapkan saran produk berdasarkan input pencarian
+  const suggestions = useMemo(() => {
+    if (!searchTerm) return [];
+    const lowerCaseSearch = searchTerm.toLowerCase();
+    return products
+      .filter(product => product.name.toLowerCase().startsWith(lowerCaseSearch))
+      .slice(0, 5); // Ambil maksimal 5 saran
+  }, [searchTerm, products]);
 
   if (loading) {
     return (
@@ -180,6 +194,23 @@ export default function POS() {
               {isCameraScannerOpen ? <X className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
             </button>
         </div>
+        
+        {/* Keterangan: Area saran pencarian */}
+        {searchTerm.length > 0 && suggestions.length > 0 && (
+          <div className="absolute w-full mt-2 bg-white rounded-xl shadow-lg ring-1 ring-slate-200 z-20">
+            {suggestions.map(product => (
+              <button
+                key={product.sku}
+                onClick={() => handleSuggestionClick(product)}
+                className="w-full text-left p-3 hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl"
+              >
+                <span className="font-medium">{product.name}</span>
+                <p className="text-sm text-slate-500">{formatCurrency(product.price)} - Stok: {product.stock}</p>
+              </button>
+            ))}
+          </div>
+        )}
+        
         {/* Tampilan Scanner Inline */}
         {isCameraScannerOpen && <div className="mt-2"><InlineScanner onScanSuccess={handleCameraScanSuccess} /></div>}
       </div>
@@ -245,4 +276,3 @@ export default function POS() {
     </div>
   );
 }
-
