@@ -83,18 +83,15 @@ export default function Terlaris() {
         <div className="container-app">
           <div className="card">
             <h3 className="font-semibold text-slate-800 mb-4">Peringkat Teratas ({displayCount})</h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {topSellingItems.slice(0, displayCount).map((item, index) => (
-                <div key={item.id} className="flex items-center gap-4">
+                <div key={item.id} className="card p-4 flex items-center gap-4 bg-slate-50">
                   <div className="w-8 h-8 flex-shrink-0 bg-sky-500 text-white font-bold text-sm rounded-full flex items-center justify-center">
                     {index + 1}
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-base text-slate-800">{item.name}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-bold text-lg text-sky-600">{item.sales}</span>
-                    <p className="text-sm text-slate-500">penjualan</p>
+                    <p className="text-sm text-slate-500">{item.sales} penjualan</p>
                   </div>
                 </div>
               ))}

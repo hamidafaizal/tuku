@@ -3,11 +3,12 @@ import { Award, AlertTriangle, TrendingUp, Users } from 'lucide-react';
 import BottomNav from '../components/owner/BottomNav.jsx';
 import Terlaris from '../pages/owner/dashboard/Terlaris.jsx';
 import StokTipis from '../pages/owner/dashboard/StokTipis.jsx';
+import Penjualan from '../pages/owner/dashboard/Penjualan.jsx';
+import Laporan from '../pages/owner/dashboard/Laporan.jsx'; // Keterangan: Mengimpor komponen Laporan
 
 // Import komponen halaman dummy untuk Dashboard
 // Nanti bisa diganti dengan halaman sebenarnya
-const DummyPenjualan = () => <div>Halaman Penjualan</div>;
-const DummyLaporan = () => <div>Halaman Laporan</div>;
+// const DummyLaporan = () => <div>Halaman Laporan</div>; // Keterangan: Komponen dummy dihapus
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Dashboard
 export default function DashboardLayout() {
@@ -40,9 +41,9 @@ export default function DashboardLayout() {
       case 'stokTipis':
         return <StokTipis />;
       case 'penjualan':
-        return <DummyPenjualan />;
+        return <Penjualan />;
       case 'laporan':
-        return <DummyLaporan />;
+        return <Laporan />; // Keterangan: Merender komponen Laporan
       default:
         return <Terlaris />;
     }
