@@ -4,6 +4,7 @@ import OwnerLayout from '/src/layouts/OwnerLayout.jsx';
 import CashierLayout from '/src/layouts/CashierLayout.jsx';
 import AuthPage from '/src/pages/AuthPage.jsx';
 import GudangLayout from './layouts/GudangLayout.jsx';
+import DashboardLayout from './layouts/DashboardLayout.jsx';
 import DatabaseBarang from './pages/owner/gudang/DatabaseBarang.jsx';
 
 import {
@@ -36,6 +37,10 @@ function AppRoutes() {
         </PrivateRoute>
       ),
       children: [
+        {
+          path: "owner/dashboard",
+          element: <DashboardLayout />,
+        },
         {
           path: "owner/gudang",
           element: <GudangLayout />,

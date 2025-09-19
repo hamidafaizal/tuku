@@ -1,11 +1,13 @@
 import { X } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 
 export default function Sidebar({ open = false, onNavigate = () => {}, onClose = () => {} }) {
   const menus = [
-    { key: "dashboard", label: "Dashboard" },
-    { key: "keuangan", label: "Keuangan" },
-    { key: "gudang", label: "Gudang" },
-    { key: "pengaturan", label: "Pengaturan" },
+    // Keterangan: Mengubah key dan path agar sesuai dengan struktur rute
+    { key: "dashboard", label: "Dashboard", path: "/owner/dashboard" },
+    { key: "keuangan", label: "Keuangan", path: "/owner/keuangan" },
+    { key: "gudang", label: "Gudang", path: "/owner/gudang" },
+    { key: "pengaturan", label: "Pengaturan", path: "/owner/pengaturan" },
   ];
 
   return (
@@ -45,14 +47,18 @@ export default function Sidebar({ open = false, onNavigate = () => {}, onClose =
 
         <nav className="p-3 space-y-2" role="navigation">
           {menus.map((m) => (
-            <button
+            // Menggunakan NavLink untuk navigasi
+            <NavLink
               key={m.key}
-              type="button"
-              className="btn w-full justify-start"
-              onClick={() => onNavigate(m.key)}
+              to={m.path}
+              // Menerapkan styling active saat NavLink aktif
+              className={({ isActive }) =>
+                `btn w-full justify-start ${isActive ? 'btn-primary' : ''}`
+              }
+              onClick={onClose}
             >
               {m.label}
-            </button>
+            </NavLink>
           ))}
         </nav>
       </aside>
