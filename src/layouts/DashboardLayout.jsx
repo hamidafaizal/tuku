@@ -1,29 +1,22 @@
 import { useState } from 'react';
-import { Award, AlertTriangle, TrendingUp, Users } from 'lucide-react';
+import { Award, AlertTriangle, TrendingUp, History } from 'lucide-react';
 import BottomNav from '../components/owner/BottomNav.jsx';
 import Terlaris from '../pages/owner/dashboard/Terlaris.jsx';
 import StokTipis from '../pages/owner/dashboard/StokTipis.jsx';
 import Penjualan from '../pages/owner/dashboard/Penjualan.jsx';
-import Laporan from '../pages/owner/dashboard/Laporan.jsx'; // Keterangan: Mengimpor komponen Laporan
+import Riwayat from '../pages/owner/dashboard/Riwayat.jsx';
 
-// Import komponen halaman dummy untuk Dashboard
-// Nanti bisa diganti dengan halaman sebenarnya
-// const DummyLaporan = () => <div>Halaman Laporan</div>; // Keterangan: Komponen dummy dihapus
-
-// Layout khusus untuk semua halaman yang berhubungan dengan Dashboard
 export default function DashboardLayout() {
-  // State untuk melacak item menu mana yang aktif di BottomNav
   const [activeItem, setActiveItem] = useState('terlaris');
   console.log(`Rendering DashboardLayout, item aktif: ${activeItem}`);
 
-  // Daftar menu yang akan ditampilkan di navigasi bawah
+  // Keterangan: Daftar menu yang akan ditampilkan di navigasi bawah
+  // Menu 'Riwayat' telah ditambahkan
   const dashboardMenuItems = [
-    // Keterangan: Mengubah menu pertama menjadi "Terlaris"
     { key: 'terlaris', label: 'Terlaris', icon: Award },
-    // Keterangan: Mengubah menu kedua menjadi "Stok Tipis" dengan icon peringatan
     { key: 'stokTipis', label: 'Stok Tipis', icon: AlertTriangle },
     { key: 'penjualan', label: 'Penjualan', icon: TrendingUp },
-    { key: 'laporan', label: 'Laporan', icon: Users },
+    { key: 'riwayat', label: 'Riwayat', icon: History },
   ];
 
   // Fungsi untuk mengubah halaman yang aktif
@@ -37,29 +30,25 @@ export default function DashboardLayout() {
     switch (activeItem) {
       case 'terlaris':
         return <Terlaris />;
-      // Keterangan: Merender komponen StokTipis
       case 'stokTipis':
         return <StokTipis />;
       case 'penjualan':
         return <Penjualan />;
-      case 'laporan':
-        return <Laporan />; // Keterangan: Merender komponen Laporan
+      case 'riwayat':
+        return <Riwayat />;
       default:
         return <Terlaris />;
     }
   };
 
   return (
-    // Container DashboardLayout diatur sebagai flex column agar konten terbagi secara vertikal
     <div className="flex-1 flex flex-col">
-      {/* Area konten fleksibel yang akan digulir */}
       <div className="flex-1">
         <div className="container-app py-4 md:py-6 h-full">
           {renderPage()}
         </div>
       </div>
       
-      {/* Navigasi Bawah (Persistent) */}
       <BottomNav 
         menuItems={dashboardMenuItems}
         activeItem={activeItem}

@@ -5,6 +5,7 @@ import CashierLayout from '/src/layouts/CashierLayout.jsx';
 import AuthPage from '/src/pages/AuthPage.jsx';
 import GudangLayout from './layouts/GudangLayout.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
+import KeuanganLayout from './layouts/KeuanganLayout.jsx';
 import DatabaseBarang from './pages/owner/gudang/DatabaseBarang.jsx';
 
 import {
@@ -40,6 +41,10 @@ function AppRoutes() {
         {
           path: "owner/dashboard",
           element: <DashboardLayout />,
+        },
+        {
+          path: "owner/keuangan",
+          element: <KeuanganLayout />,
         },
         {
           path: "owner/gudang",
