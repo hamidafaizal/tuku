@@ -266,45 +266,50 @@ export async function fetchStockHistory() {
 export async function fetchProductBySku(sku) {
   console.log('Mencari produk dengan SKU:', sku);
 
-  // Keterangan: Mencari produk berdasarkan SKU dasar
+  // Keterangan: Langkah 1 - Cari berdasarkan SKU dasar di tabel products
   const { data: productData, error: productError } = await supabase
     .from('products')
     .select(`
       id,
       name,
       base_unit,
-      base_sku,
-      uom(id, uom_name, quantity_per_uom, uom_sku)
+      base_sku
     `)
     .eq('base_sku', sku)
     .maybeSingle();
 
   if (productError) {
     console.error('Error saat mencari produk berdasarkan SKU dasar:', productError);
-    return { product: null, matchedSku: null, error: productError };
+    return { product: null, matchedSku: null, uomList: null, error: productError };
   }
 
   if (productData) {
+    // Keterangan: Jika produk ditemukan, ambil data UOM-nya.
+    const { data: uomList, error: uomError } = await supabase
+      .from('uom')
+      .select('id, uom_name, uom_sku, quantity_per_uom')
+      .eq('product_id', productData.id);
+    
+    if (uomError) {
+      console.error('Error saat mengambil UOM untuk produk:', uomError);
+      return { product: null, matchedSku: null, uomList: null, error: uomError };
+    }
+
     console.log('Produk ditemukan melalui SKU dasar.');
     return {
-      product: {
-        id: productData.id,
-        name: productData.name,
-        base_unit: productData.base_unit,
-        base_sku: productData.base_sku,
-      },
+      product: productData,
       matchedSku: {
         type: 'base',
-        id: productData.id,
+        id: null,
         sku: productData.base_sku,
         unit: productData.base_unit,
-        quantity: 1,
+        quantity_per_uom: 1,
       },
-      uomList: productData.uom
+      uomList: uomList
     };
   }
-
-  // Keterangan: Jika tidak ditemukan, coba cari di tabel UOM
+  
+  // Keterangan: Langkah 2 - Jika tidak ditemukan di tabel products, coba cari di tabel uom
   const { data: uomData, error: uomError } = await supabase
     .from('uom')
     .select(`
@@ -319,7 +324,7 @@ export async function fetchProductBySku(sku) {
 
   if (uomError) {
     console.error('Error saat mencari produk berdasarkan SKU UOM:', uomError);
-    return { product: null, matchedSku: null, error: uomError };
+    return { product: null, matchedSku: null, uomList: null, error: uomError };
   }
 
   if (uomData) {
@@ -331,17 +336,17 @@ export async function fetchProductBySku(sku) {
         id: uomData.id,
         sku: uomData.uom_sku,
         unit: uomData.uom_name,
-        quantity: uomData.quantity_per_uom,
+        quantity_per_uom: uomData.quantity_per_uom,
       },
       uomList: null
     };
   }
 
   console.log('Produk dengan SKU', sku, 'tidak ditemukan.');
-  return { product: null, matchedSku: null, error: null };
+  return { product: null, matchedSku: null, uomList: null, error: null };
 }
 
-// Keterangan: Fungsi untuk menambahkan stok baru dan memperbarui stock_levels
+// Keterangan: Fungsi baru untuk menambahkan stok baru dan memperbarui stock_levels
 export async function addStock(stockData) {
   console.log('Mencoba menambahkan stok baru dan memperbarui stock_levels:', stockData);
   const { productId, uomId, sku, quantity, purchasePrice, totalBaseQuantity } = stockData;
@@ -359,6 +364,7 @@ export async function addStock(stockData) {
       });
 
     if (stockHistoryError) throw stockHistoryError;
+    console.log('Data stock_history berhasil disimpan.');
 
     const { data: currentStock, error: fetchStockError } = await supabase
       .from('stock_levels')
@@ -368,7 +374,6 @@ export async function addStock(stockData) {
 
     if (fetchStockError) {
       console.error('Error saat mengambil data stock_levels:', fetchStockError);
-      // Lanjutkan tanpa throw, agar proses bisa berlanjut ke insert
     }
 
     if (currentStock) {
@@ -391,6 +396,20 @@ export async function addStock(stockData) {
       if (insertError) throw insertError;
       console.log('Stok baru berhasil ditambahkan di stock_levels.');
     }
+
+  // Keterangan: Memperbarui cost_price di tabel prices
+  const { error: priceUpdateError } = await supabase
+    .from('prices')
+    .update({ cost_price: purchasePrice })
+    .eq('sku', sku)
+    .eq('product_id', productId)
+    .is('uom_id', uomId);
+
+  if (priceUpdateError) {
+    console.error('Gagal memperbarui harga beli (cost_price):', priceUpdateError);
+  } else {
+    console.log('Harga beli (cost_price) berhasil diperbarui.');
+  }
 
     console.log('Stok masuk berhasil disimpan.');
     return { success: true, error: null };

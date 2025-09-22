@@ -25,7 +25,9 @@ export default function Database() {
     const fetchProducts = async () => {
       console.log('// Database: Memuat data produk, UOM, dan harga dari Supabase.');
       setLoading(true);
-      const { data, error: fetchError } = await supabase
+      
+      // Keterangan: Query Supabase diperbarui untuk menyertakan filter berdasarkan `searchTerm`
+      let query = supabase
         .from('products')
         .select(`
           id,
@@ -36,14 +38,20 @@ export default function Database() {
           uom(id, uom_name, uom_sku)
         `)
         .order('name', { ascending: true }); // Mengurutkan berdasarkan nama produk secara ascending
+      
+      if (searchTerm) {
+        query = query.filter('name', 'ilike', `%${searchTerm}%`);
+        console.log('// Database: Menerapkan filter pencarian:', `%${searchTerm}%`);
+      }
 
+      const { data, error: fetchError } = await query;
+      
       if (fetchError) {
         console.error('// Database: Gagal memuat data produk.', fetchError);
         setError(fetchError.message);
       } else {
         console.log('// Database: Data produk berhasil dimuat.', data);
         setProducts(data);
-        // Menambahkan console.log untuk memeriksa apakah data produk kosong atau tidak
         if (data && data.length === 0) {
           console.log('// Database: Data produk yang diterima kosong.');
         } else {
@@ -53,10 +61,11 @@ export default function Database() {
       setLoading(false);
     };
 
+    // Keterangan: Jalankan ulang fetchProducts setiap kali `searchTerm` atau `showTambahBarang` berubah
     if (!showTambahBarang) {
       fetchProducts();
     }
-  }, [showTambahBarang]);
+  }, [showTambahBarang, searchTerm]);
 
   const handleAddClick = () => {
     setShowTambahBarang(true);
@@ -72,15 +81,10 @@ export default function Database() {
     return <TambahBarangBaru onBack={handleBack} />;
   }
 
-  // Keterangan: Filter produk berdasarkan searchTerm
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     // Keterangan: Container utama sebagai flexbox column
     <div className="flex flex-col h-full">
-      {/* Keterangan: Header ditempatkan di luar area scroll, dengan flex-shrink-0 untuk mencegahnya menyusut */}
+      {/* Keterangan: Meneruskan state `searchTerm` dan `setSearchTerm` ke komponen Header */}
       <Header onAddClick={handleAddClick} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
       
       {/* Keterangan: Konten utama mengambil sisa ruang (flex-1) dan memiliki scrollbar sendiri */}
@@ -100,12 +104,12 @@ export default function Database() {
 
         {!loading && !error && (
           <div className="space-y-4">
-            {filteredProducts.length === 0 ? (
+            {products.length === 0 ? (
               <div className="flex items-center justify-center p-4">
                 <p className="text-slate-500">Tidak ada produk yang ditemukan.</p>
               </div>
             ) : (
-              filteredProducts.map((product) => {
+              products.map((product) => {
                 const basePrice = product.prices?.find(p => p.uom_id === null);
                 return (
                   <div key={product.id} className="card p-4">
