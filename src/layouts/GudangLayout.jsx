@@ -58,7 +58,7 @@ export default function GudangLayout() {
     // Container GudangLayout diatur sebagai flex column agar konten terbagi secara vertikal
     <div className="flex-1 flex flex-col">
       {/* Area konten fleksibel yang akan digulir */}
-      <div className="flex-1">
+      <div className="flex-1 pb-24">
         <div className="container-app h-full">
           {renderPage()}
         </div>

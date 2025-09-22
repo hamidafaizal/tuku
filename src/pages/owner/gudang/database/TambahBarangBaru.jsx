@@ -21,6 +21,10 @@ export default function TambahBarangBaru({ onBack }) {
       setUoms([...uoms, { unit: '', quantity: 0, price: 0, sku: '' }]);
     }
   };
+  
+  const removeUom = (indexToRemove) => {
+    setUoms(uoms.filter((_, index) => index !== indexToRemove));
+  };
 
   const handleUomChange = (index, field, value) => {
     const newUoms = [...uoms];
@@ -279,8 +283,18 @@ export default function TambahBarangBaru({ onBack }) {
 
         {/* Form UOM jika diaktifkan */}
         {isUomActive && uoms.map((uom, index) => (
-          <div key={index} className="space-y-4 p-4 border rounded-lg bg-slate-50">
+          <div key={index} className="space-y-4 p-4 border rounded-lg bg-slate-50 relative">
             <p className="text-sm font-semibold mb-2">Satuan UOM {index + 1}</p>
+            {uoms.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeUom(index)}
+                className="absolute top-2 right-2 icon-btn p-1 hover:bg-slate-200"
+                title="Hapus UOM ini"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            )}
             <div>
               <label className="text-sm font-medium mb-1 block">Satuan UOM</label>
               <input

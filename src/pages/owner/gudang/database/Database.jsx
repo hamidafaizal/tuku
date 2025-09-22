@@ -9,6 +9,7 @@ export default function Database() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Keterangan: Fungsi untuk memformat angka menjadi format mata uang Rupiah
   const formatCurrency = (number) => {
@@ -33,7 +34,8 @@ export default function Database() {
           base_sku,
           prices(sku, selling_price, uom_id),
           uom(id, uom_name, uom_sku)
-        `);
+        `)
+        .order('name', { ascending: true }); // Mengurutkan berdasarkan nama produk secara ascending
 
       if (fetchError) {
         console.error('// Database: Gagal memuat data produk.', fetchError);
@@ -70,9 +72,18 @@ export default function Database() {
     return <TambahBarangBaru onBack={handleBack} />;
   }
 
+  // Keterangan: Filter produk berdasarkan searchTerm
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
+    // Keterangan: Container utama sebagai flexbox column
     <div className="flex flex-col h-full">
-      <Header onAddClick={handleAddClick} />
+      {/* Keterangan: Header ditempatkan di luar area scroll, dengan flex-shrink-0 untuk mencegahnya menyusut */}
+      <Header onAddClick={handleAddClick} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      
+      {/* Keterangan: Konten utama mengambil sisa ruang (flex-1) dan memiliki scrollbar sendiri */}
       <div className="flex-1 overflow-y-auto pt-4 pb-20">
         {loading && (
           <div className="flex flex-col items-center justify-center p-4">
@@ -89,12 +100,12 @@ export default function Database() {
 
         {!loading && !error && (
           <div className="space-y-4">
-            {products.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <div className="flex items-center justify-center p-4">
                 <p className="text-slate-500">Tidak ada produk yang ditemukan.</p>
               </div>
             ) : (
-              products.map((product) => {
+              filteredProducts.map((product) => {
                 const basePrice = product.prices?.find(p => p.uom_id === null);
                 return (
                   <div key={product.id} className="card p-4">
