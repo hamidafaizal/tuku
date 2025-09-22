@@ -6,7 +6,8 @@ import AuthPage from '/src/pages/AuthPage.jsx';
 import GudangLayout from './layouts/GudangLayout.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
 import KeuanganLayout from './layouts/KeuanganLayout.jsx';
-import DatabaseBarang from './pages/owner/gudang/DatabaseBarang.jsx';
+// Keterangan: Menghapus impor untuk DatabaseBarang.jsx
+// import DatabaseBarang from './pages/owner/gudang/DatabaseBarang.jsx';
 
 import {
   BrowserRouter as Router,
@@ -50,11 +51,11 @@ function AppRoutes() {
           path: "owner/gudang",
           element: <GudangLayout />,
           children: [
-            {
-              path: "database",
-              element: <DatabaseBarang />,
-            },
-            // Tambahkan rute untuk StokMasuk, ProductList di sini
+            // Keterangan: Menghapus rute bersarang untuk halaman-halaman Gudang yang akan dihapus
+            // {
+            //   path: "database",
+            //   element: <DatabaseBarang />,
+            // },
           ]
         }
       ]
