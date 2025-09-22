@@ -4,17 +4,25 @@ import TambahBarangBaru from './TambahBarangBaru.jsx';
 import { supabase } from '/supabaseClient.js';
 import { Loader2 } from 'lucide-react';
 
-// Halaman utama untuk membungkus konten menu Database.
 export default function Database() {
   const [showTambahBarang, setShowTambahBarang] = useState(false);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Keterangan: Fungsi untuk memformat angka menjadi format mata uang Rupiah
+  const formatCurrency = (number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(number);
+  };
+
   useEffect(() => {
-    // Keterangan: Fungsi untuk mengambil data produk dari Supabase
+    // Keterangan: Fungsi untuk mengambil data produk, UOM, dan harga dari Supabase
     const fetchProducts = async () => {
-      console.log('// Database: Memuat data produk dari Supabase.');
+      console.log('// Database: Memuat data produk, UOM, dan harga dari Supabase.');
       setLoading(true);
       const { data, error: fetchError } = await supabase
         .from('products')
@@ -23,7 +31,8 @@ export default function Database() {
           name,
           base_unit,
           base_sku,
-          uom(id, uom_name)
+          prices(sku, selling_price, uom_id),
+          uom(id, uom_name, uom_sku)
         `);
 
       if (fetchError) {
@@ -32,6 +41,12 @@ export default function Database() {
       } else {
         console.log('// Database: Data produk berhasil dimuat.', data);
         setProducts(data);
+        // Menambahkan console.log untuk memeriksa apakah data produk kosong atau tidak
+        if (data && data.length === 0) {
+          console.log('// Database: Data produk yang diterima kosong.');
+        } else {
+          console.log('// Database: Data produk yang diterima tidak kosong.');
+        }
       }
       setLoading(false);
     };
@@ -51,7 +66,6 @@ export default function Database() {
     console.log('// Database: Kembali ke halaman utama database.');
   };
 
-  // Keterangan: Render tampilan yang berbeda berdasarkan state
   if (showTambahBarang) {
     return <TambahBarangBaru onBack={handleBack} />;
   }
@@ -80,23 +94,35 @@ export default function Database() {
                 <p className="text-slate-500">Tidak ada produk yang ditemukan.</p>
               </div>
             ) : (
-              products.map((product) => (
-                <div key={product.id} className="card p-4">
-                  <h3 className="font-semibold">{product.name}</h3>
-                  <p className="text-sm muted">SKU: {product.base_sku}</p>
-                  <p className="text-sm muted">Satuan Dasar: {product.base_unit}</p>
-                  {product.uom && product.uom.length > 0 && (
-                    <div className="mt-2 text-sm">
-                      <span className="font-medium">UOM:</span>
-                      <ul className="list-disc list-inside">
-                        {product.uom.map((uomItem) => (
-                          <li key={uomItem.id}>{uomItem.uom_name}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))
+              products.map((product) => {
+                const basePrice = product.prices?.find(p => p.uom_id === null);
+                return (
+                  <div key={product.id} className="card p-4">
+                    <h3 className="font-semibold">{product.name}</h3>
+                    <p className="text-sm muted">SKU Dasar: {product.base_sku}</p>
+                    <p className="text-sm muted">Satuan Dasar: {product.base_unit}</p>
+                    <p className="text-sm muted">Harga Jual: {formatCurrency(basePrice?.selling_price || 0)}</p>
+
+                    {product.uom && product.uom.length > 0 && (
+                      <div className="mt-4 text-sm">
+                        <span className="font-medium text-slate-700">Satuan UOM:</span>
+                        <ul className="space-y-2 mt-2">
+                          {product.uom.map((uomItem) => {
+                            const uomPrice = product.prices?.find(p => p.uom_id === uomItem.id);
+                            return (
+                              <li key={uomItem.id} className="p-3 bg-slate-50 rounded-lg">
+                                <p className="font-semibold">{uomItem.uom_name}</p>
+                                <p className="text-sm muted">SKU: {uomItem.uom_sku}</p>
+                                <p className="text-sm muted">Harga Jual: {formatCurrency(uomPrice?.selling_price || 0)}</p>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         )}
