@@ -1,383 +1,365 @@
 import React, { useState } from 'react';
-import { Camera, Upload, Image as ImageIcon, X, Info, Plus } from 'lucide-react';
-// Keterangan: Menggunakan InlineScanner untuk tampilan kamera yang terintegrasi
+import { supabase } from '/supabaseClient.js';
+import { X, Camera, Info, Save, Loader2, Wand2 } from 'lucide-react';
 import InlineScanner from '/src/components/cashier/InlineScanner.jsx';
 
 export default function TambahBarangBaru({ onBack }) {
-  const [namaProduk, setNamaProduk] = useState('');
-  const [skuProduk, setSkuProduk] = useState('');
-  const [satuanProduk, setSatuanProduk] = useState('');
-  const [hargaJual, setHargaJual] = useState('');
-  const [fotoProduk, setFotoProduk] = useState(null);
-  const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+  const [productName, setProductName] = useState('');
+  const [sku, setSku] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [baseUnit, setBaseUnit] = useState('');
+  const [sellingPrice, setSellingPrice] = useState(0);
   const [isUomActive, setIsUomActive] = useState(false);
-  // Keterangan: Menggunakan array untuk menyimpan beberapa UOM
-  const [uomList, setUomList] = useState([{
-    id: 1,
-    sku: '',
-    nama: '',
-    jumlah: '',
-    harga: '',
-    isScannerOpen: false, // State scanner per UOM
-  }]);
+  const [uoms, setUoms] = useState([]);
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState('');
+  const [submitError, setSubmitError] = useState('');
 
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      console.log('File foto dipilih:', file.name);
-      setFotoProduk(file);
+  const addUom = () => {
+    if (uoms.length < 3) {
+      setUoms([...uoms, { unit: '', quantity: 0, price: 0, sku: '' }]);
     }
   };
 
-  const handleScanSuccess = (decodedText) => {
-    console.log('Barcode berhasil di-scan:', decodedText);
-    setSkuProduk(decodedText);
-    setIsCameraScannerOpen(false);
+  const handleUomChange = (index, field, value) => {
+    const newUoms = [...uoms];
+    newUoms[index][field] = value;
+    setUoms(newUoms);
   };
   
-  // Keterangan: Fungsi untuk menangani hasil scan barcode UOM tertentu
-  const handleUomScanSuccess = (id, decodedText) => {
-    console.log(`Barcode UOM (ID: ${id}) berhasil di-scan:`, decodedText);
-    setUomList(uomList.map(uom =>
-      uom.id === id ? { ...uom, sku: decodedText, isScannerOpen: false } : uom
-    ));
+  const handleScanSuccess = (scannedCode) => {
+    setSku(scannedCode);
+    setIsScanning(false);
   };
   
-  // Keterangan: Fungsi untuk menambah UOM baru
-  const handleAddUom = () => {
-    if (uomList.length < 3) {
-      setUomList([...uomList, {
-        id: uomList.length + 1,
-        sku: '',
-        nama: '',
-        jumlah: '',
-        harga: '',
-        isScannerOpen: false,
-      }]);
-    } else {
-      console.log('Batas maksimal UOM (3) telah tercapai.');
+  // Keterangan: Fungsi untuk menghasilkan kode SKU acak
+  const generateRandomSku = (type, index) => {
+    const newSku = crypto.randomUUID().slice(0, 8).toUpperCase();
+    if (type === 'base') {
+      setSku(newSku);
+    } else if (type === 'uom') {
+      const newUoms = [...uoms];
+      newUoms[index].sku = newSku;
+      setUoms(newUoms);
     }
+    console.log(`// Tambah Produk: Kode SKU acak dibuat: ${newSku}`);
   };
 
-  // Keterangan: Fungsi untuk menghapus UOM
-  const handleRemoveUom = (id) => {
-    setUomList(uomList.filter(uom => uom.id !== id));
-  };
-
-  // Keterangan: Fungsi untuk mengubah data UOM
-  const handleUomChange = (id, field, value) => {
-    setUomList(uomList.map(uom =>
-      uom.id === id ? { ...uom, [field]: value } : uom
-    ));
-  };
-
-  // Keterangan: Fungsi untuk handle submit form
-  const handleSubmit = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    console.log('Form disubmit dengan data:', {
-      namaProduk,
-      skuProduk,
-      satuanProduk,
-      hargaJual,
-      fotoProduk,
-      isUomActive,
-      uomList: isUomActive ? uomList : [],
-    });
-    // Logika untuk menyimpan data ke database akan ditambahkan di sini
+    setIsSubmitting(true);
+    setSubmitSuccess('');
+    setSubmitError('');
+
+    console.log('// Tambah Produk: Memulai proses penyimpanan data.');
+
+    try {
+      // Keterangan: Menggunakan data.session dari AuthContext.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Pengguna belum terotentikasi.");
+      }
+
+      // Keterangan: Cek duplikasi nama produk dan SKU
+      console.log('// Tambah Produk: Melakukan pengecekan duplikasi nama dan SKU.');
+      const { data: existingProducts, error: checkError } = await supabase
+        .from('products')
+        .select('name, base_sku')
+        .eq('user_id', session.user.id)
+        .or(`name.eq.${productName},base_sku.eq.${sku}`);
+
+      if (checkError) throw checkError;
+
+      if (existingProducts && existingProducts.length > 0) {
+        const nameExists = existingProducts.some(p => p.name.toLowerCase() === productName.toLowerCase());
+        const skuExists = existingProducts.some(p => p.base_sku.toLowerCase() === sku.toLowerCase());
+
+        if (nameExists) {
+          throw new Error('Nama produk sudah ada. Silakan gunakan nama lain.');
+        }
+        if (skuExists) {
+          throw new Error('Kode Produk (SKU) sudah ada. Silakan gunakan kode lain.');
+        }
+      }
+      
+      // Keterangan: Menyimpan data ke tabel `products`
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .insert([{
+          name: productName,
+          base_unit: baseUnit,
+          base_sku: sku,
+          user_id: session.user.id
+        }])
+        .select();
+
+      if (productError) throw productError;
+      const productId = productData[0].id;
+      console.log('// Tambah Produk: Data produk berhasil disimpan, product_id:', productId);
+      
+      const pricesToInsert = [
+        {
+          product_id: productId,
+          sku: sku,
+          selling_price: parseFloat(sellingPrice),
+          cost_price: 0,
+        }
+      ];
+
+      // Keterangan: Menyimpan data UOM jika diaktifkan
+      if (isUomActive && uoms.length > 0) {
+        console.log('// Tambah Produk: Menyimpan data UOM.');
+        const uomInserts = uoms.map(uom => ({
+          product_id: productId,
+          uom_name: uom.unit,
+          uom_sku: uom.sku,
+          quantity_per_uom: parseInt(uom.quantity),
+        }));
+        
+        const { data: uomData, error: uomError } = await supabase
+          .from('uom')
+          .insert(uomInserts)
+          .select();
+
+        if (uomError) throw uomError;
+        console.log('// Tambah Produk: Data UOM berhasil disimpan.', uomData);
+        
+        // Keterangan: Menambahkan data harga UOM ke array `pricesToInsert`
+        uomData.forEach((uomItem, index) => {
+          pricesToInsert.push({
+            product_id: productId,
+            uom_id: uomItem.id,
+            sku: uomItem.uom_sku,
+            selling_price: parseFloat(uoms[index].price),
+            cost_price: 0,
+          });
+        });
+      }
+      
+      // Keterangan: Menyimpan semua data harga (dasar dan UOM) sekaligus
+      const { error: priceError } = await supabase
+        .from('prices')
+        .insert(pricesToInsert);
+        
+      if (priceError) throw priceError;
+      console.log('// Tambah Produk: Semua data harga berhasil disimpan.');
+
+      setSubmitSuccess('Produk berhasil ditambahkan!');
+      // Reset form
+      setProductName('');
+      setSku('');
+      setBaseUnit('');
+      setSellingPrice(0);
+      setIsUomActive(false);
+      setUoms([]);
+      
+    } catch (error) {
+      console.error('// Tambah Produk: Terjadi error:', error);
+      setSubmitError(`Gagal menyimpan data: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
-  const tooltipText = "UOM (Unit of Measure): satuan barang untuk jual/beli & stok. Contoh: biji, botol, kardus. Sistem otomatis konversi antar satuan.";
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Input Nama Produk */}
+    <div className="p-4">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold">Tambah Produk Baru</h2>
+        <button onClick={onBack} className="icon-btn hover:bg-slate-100">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <form onSubmit={handleSave} className="space-y-6 max-w-lg mx-auto">
+        {submitSuccess && (
+          <div className="alert alert-success">
+            {submitSuccess}
+          </div>
+        )}
+        {submitError && (
+          <div className="alert alert-error">
+            {submitError}
+          </div>
+        )}
+        
+        {/* Nama Produk */}
         <div>
-          <label htmlFor="namaProduk" className="text-sm font-medium">Nama Produk</label>
+          <label className="text-sm font-medium mb-1 block">Nama Produk</label>
           <input
-            id="namaProduk"
             type="text"
-            className="input mt-1"
-            placeholder="contohnya mie instan"
-            value={namaProduk}
-            onChange={(e) => {
-              console.log('Input nama produk:', e.target.value);
-              setNamaProduk(e.target.value);
-            }}
+            className="input"
+            placeholder="Contohnya mie instan"
+            value={productName}
+            onChange={(e) => setProductName(e.target.value)}
             required
           />
         </div>
 
-        {/* Input Foto Produk */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Foto Produk</label>
-          {fotoProduk ? (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 ring-1 ring-slate-200">
-              <ImageIcon className="w-5 h-5 text-slate-500" />
-              <span className="flex-1 text-sm text-slate-700 ellipsis">{fotoProduk.name}</span>
-              <button 
-                type="button" 
-                onClick={() => {
-                  console.log('Menghapus foto produk.');
-                  setFotoProduk(null);
-                }}
-                className="icon-btn hover:bg-slate-100"
-              >
-                <X className="w-4 h-4 text-slate-500" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <button 
-                type="button"
-                onClick={() => {
-                  console.log('Tombol Ambil Foto diklik. Fungsi ini akan diimplementasikan nanti.');
-                }}
-                className="btn w-full justify-center btn-secondary"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Ambil Foto</span>
-              </button>
-              <label htmlFor="uploadFoto" className="btn w-full justify-center btn-secondary cursor-pointer">
-                <Upload className="w-4 h-4" />
-                <span>Pilih dari File</span>
-                <input 
-                  id="uploadFoto" 
-                  type="file" 
-                  accept="image/png, image/jpeg, image/jpg" 
-                  className="hidden" 
-                  onChange={handleFileChange}
-                />
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* Input Kode Produk SKU */}
+        {/* Input SKU Dasar */}
         <div>
-          <label htmlFor="skuProduk" className="text-sm font-medium">Kode Produk (SKU)</label>
+          <label className="text-sm font-medium mb-1 block">Kode Produk (SKU)</label>
           <div className="flex gap-2">
             <input
-              id="skuProduk"
               type="text"
-              className="input mt-1 flex-1"
-              placeholder="contohnya MIE001"
-              value={skuProduk}
-              onChange={(e) => {
-                console.log('Input SKU:', e.target.value);
-                setSkuProduk(e.target.value);
-              }}
+              className="input flex-1"
+              placeholder="Contoh: 1234567890"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              disabled={isScanning}
               required
             />
             <button
               type="button"
-              onClick={() => {
-                console.log('Tombol scanner diklik, toggling inline scanner.');
-                setIsCameraScannerOpen(!isCameraScannerOpen);
-              }}
-              className={`icon-btn btn-secondary mt-1 ${isCameraScannerOpen ? 'text-rose-500' : ''}`}
+              onClick={() => generateRandomSku('base')}
+              className="icon-btn bg-white hover:bg-slate-100"
+              title="Buat SKU Otomatis"
             >
-              {isCameraScannerOpen ? <X className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+              <Wand2 className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsScanning(!isScanning)}
+              className="icon-btn bg-white hover:bg-slate-100"
+              title="Pindai barcode"
+            >
+              <Camera className="w-5 h-5" />
             </button>
           </div>
         </div>
-        
-        {/* Keterangan: Input Satuan Produk dasar */}
-        <div>
-          <label htmlFor="satuanProduk" className="text-sm font-medium">Satuan Barang Terkecil</label>
-          <input
-            id="satuanProduk"
-            type="text"
-            className="input mt-1"
-            placeholder="Contoh : bungkus, biji, pcs"
-            value={satuanProduk}
-            onChange={(e) => {
-              console.log('Input satuan produk:', e.target.value);
-              setSatuanProduk(e.target.value);
-            }}
-            required
-          />
-        </div>
-
-        {/* Keterangan: Menampilkan scanner inline saat state aktif */}
-        {isCameraScannerOpen && (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-500">Arahkan kamera ke barcode.</p>
+        {isScanning && (
+          <div className="mt-4">
+            <p className="text-sm text-center text-slate-500 mb-2">Arahkan kamera ke barcode</p>
             <InlineScanner onScanSuccess={handleScanSuccess} />
           </div>
         )}
 
-        {/* Input Harga Jual */}
+        {/* Satuan Barang Dasar */}
         <div>
-          <label htmlFor="hargaJual" className="text-sm font-medium">Harga Jual per {satuanProduk || 'Satuan Terkecil'}</label>
+          <label className="text-sm font-medium mb-1 block">Satuan Barang</label>
           <input
-            id="hargaJual"
+            type="text"
+            className="input"
+            placeholder="Contoh: biji, botol, pcs"
+            value={baseUnit}
+            onChange={(e) => setBaseUnit(e.target.value)}
+            required
+          />
+        </div>
+        
+        {/* Harga Jual Dasar */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">Harga Jual</label>
+          <input
             type="number"
-            className="input mt-1"
-            placeholder="contohnya 3000"
-            value={hargaJual}
-            onChange={(e) => {
-              console.log('Input harga jual:', e.target.value);
-              setHargaJual(e.target.value);
-            }}
+            className="input"
+            placeholder="Harga jual per unit"
+            value={sellingPrice}
+            onChange={(e) => setSellingPrice(e.target.value)}
             required
           />
         </div>
 
-        <div className="divider my-6"></div>
-
-        {/* Opsi UOM */}
-        <div className="flex items-center gap-2">
-          <input
-            id="uomActive"
-            type="checkbox"
-            checked={isUomActive}
-            onChange={(e) => {
-              console.log('Checkbox UOM diubah:', e.target.checked);
-              setIsUomActive(e.target.checked);
-              // Keterangan: Reset UOM list saat checkbox dimatikan
-              if (!e.target.checked) {
-                setUomList([{ id: 1, sku: '', nama: '', jumlah: '', harga: '', isScannerOpen: false }]);
-              }
-            }}
-            className="form-checkbox h-4 w-4 rounded-md text-sky-600 focus:ring-sky-500"
-          />
-          <label htmlFor="uomActive" className="text-sm font-medium text-slate-700">Aktifkan UOM</label>
-          <div className="relative group">
-            <Info className="w-4 h-4 text-slate-400 cursor-pointer" />
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
-              {tooltipText}
-            </div>
-          </div>
+        {/* Checkbox UOM */}
+        <div className="form-control">
+          <label className="label cursor-pointer">
+            <span className="label-text flex items-center gap-2 font-medium">
+              Aktifkan UOM
+              <div className="tooltip" data-tip="UOM (Unit of Measure): satuan barang untuk jual/beli & stok. Contoh: biji, botol, kardus. Sistem otomatis konversi antar satuan.">
+                <Info className="w-4 h-4 text-slate-400" />
+              </div>
+            </span>
+            <input 
+              type="checkbox" 
+              className="checkbox" 
+              checked={isUomActive} 
+              onChange={(e) => setIsUomActive(e.target.checked)} 
+            />
+          </label>
         </div>
-        
-        {/* Form UOM (Muncul jika isUomActive true) */}
-        {isUomActive && (
-          <div className="card space-y-4 p-4 mt-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Form UOM</h3>
-              {uomList.length < 3 && (
+
+        {/* Form UOM jika diaktifkan */}
+        {isUomActive && uoms.map((uom, index) => (
+          <div key={index} className="space-y-4 p-4 border rounded-lg bg-slate-50">
+            <p className="text-sm font-semibold mb-2">Satuan UOM {index + 1}</p>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Satuan UOM</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Contoh: biji, botol, pcs"
+                value={uom.unit}
+                onChange={(e) => handleUomChange(index, 'unit', e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Kode Produk (SKU)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="input flex-1"
+                  placeholder="Contoh: SKU-BOTOL"
+                  value={uom.sku}
+                  onChange={(e) => handleUomChange(index, 'sku', e.target.value)}
+                  required
+                />
                 <button
                   type="button"
-                  onClick={handleAddUom}
-                  className="btn btn-sm btn-secondary"
+                  onClick={() => generateRandomSku('uom', index)}
+                  className="icon-btn bg-white hover:bg-slate-100"
+                  title="Buat SKU Otomatis"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Tambah Satuan Barang</span>
+                  <Wand2 className="w-5 h-5" />
                 </button>
-              )}
-            </div>
-
-            {uomList.map((uom, index) => (
-              <div key={uom.id} className="space-y-4 border-b border-slate-200 pb-4 last:border-b-0 last:pb-0">
-                {uomList.length > 1 && (
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-base font-semibold text-slate-600">UOM #{index + 1}</h4>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveUom(uom.id)}
-                      className="icon-btn hover:bg-rose-50"
-                    >
-                      <X className="w-4 h-4 text-rose-500" />
-                    </button>
-                  </div>
-                )}
-                {/* Form Kode Produk (SKU) untuk UOM */}
-                <div>
-                  <label htmlFor={`uomSku-${uom.id}`} className="text-sm font-medium">Kode Produk UOM (SKU)</label>
-                  <div className="flex gap-2">
-                    <input
-                      id={`uomSku-${uom.id}`}
-                      type="text"
-                      className="input mt-1 flex-1"
-                      placeholder="contohnya MIE001-KARDUS"
-                      value={uom.sku}
-                      onChange={(e) => {
-                        console.log(`Input UOM SKU (ID: ${uom.id}):`, e.target.value);
-                        handleUomChange(uom.id, 'sku', e.target.value);
-                      }}
-                      required={isUomActive}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        console.log(`Tombol scanner UOM (ID: ${uom.id}) diklik.`);
-                        setUomList(uomList.map(item =>
-                          item.id === uom.id ? { ...item, isScannerOpen: !item.isScannerOpen } : { ...item, isScannerOpen: false }
-                        ));
-                      }}
-                      className={`icon-btn btn-secondary mt-1 ${uom.isScannerOpen ? 'text-rose-500' : ''}`}
-                    >
-                      {uom.isScannerOpen ? <X className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Form Input Satuan UOM */}
-                <div>
-                  <label htmlFor={`uomNama-${uom.id}`} className="text-sm font-medium">Satuan UOM</label>
-                  <div className="flex gap-2 items-end">
-                    <input
-                      id={`uomNama-${uom.id}`}
-                      type="text"
-                      className="input mt-1"
-                      placeholder="contohnya Kardus"
-                      value={uom.nama}
-                      onChange={(e) => {
-                        console.log(`Input UOM nama (ID: ${uom.id}):`, e.target.value);
-                        handleUomChange(uom.id, 'nama', e.target.value);
-                      }}
-                      required={isUomActive}
-                    />
-                    <span className="text-sm muted">x</span>
-                    <input
-                      id={`uomJumlah-${uom.id}`}
-                      type="number"
-                      className="input mt-1 w-24 text-right"
-                      placeholder="0"
-                      value={uom.jumlah}
-                      onChange={(e) => {
-                        console.log(`Input UOM jumlah (ID: ${uom.id}):`, e.target.value);
-                        handleUomChange(uom.id, 'jumlah', e.target.value);
-                      }}
-                      required={isUomActive}
-                    />
-                    <span className="text-sm muted">{satuanProduk || 'satuan terkecil'}</span>
-                  </div>
-                </div>
-
-                {/* Input Harga Jual per UOM */}
-                <div>
-                  <label htmlFor={`uomHarga-${uom.id}`} className="text-sm font-medium">Harga Jual per {uom.nama || 'UOM'}</label>
-                  <input
-                    id={`uomHarga-${uom.id}`}
-                    type="number"
-                    className="input mt-1"
-                    placeholder="contohnya 30000"
-                    value={uom.harga}
-                    onChange={(e) => {
-                      console.log(`Input UOM harga (ID: ${uom.id}):`, e.target.value);
-                      handleUomChange(uom.id, 'harga', e.target.value);
-                    }}
-                    required={isUomActive}
-                  />
-                </div>
-
-                {uom.isScannerOpen && (
-                  <div className="space-y-4">
-                    <p className="text-sm text-slate-500">Arahkan kamera ke barcode.</p>
-                    <InlineScanner onScanSuccess={(text) => handleUomScanSuccess(uom.id, text)} />
-                  </div>
-                )}
               </div>
-            ))}
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Jumlah per Satuan</label>
+              <input
+                type="number"
+                className="input"
+                placeholder={`Berapa ${baseUnit} dalam 1 ${uom.unit}`}
+                value={uom.quantity}
+                onChange={(e) => handleUomChange(index, 'quantity', e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Harga Jual per UOM</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="Harga jual satuan UOM"
+                value={uom.price}
+                onChange={(e) => handleUomChange(index, 'price', e.target.value)}
+                required
+              />
+            </div>
+          </div>
+        ))}
+        {isUomActive && uoms.length < 3 && (
+          <div className="flex justify-end mt-4">
+            <button type="button" onClick={addUom} className="btn btn-sm">
+              + Satuan Barang
+            </button>
           </div>
         )}
-        
+
         {/* Tombol Simpan */}
-        <button type="submit" className="btn btn-primary w-full btn-lg">
-          Simpan Produk
-        </button>
+        <div className="mt-6 border-t pt-4">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn btn-primary w-full btn-lg"
+          >
+            {isSubmitting ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Save className="w-5 h-5" />
+            )}
+            <span>{isSubmitting ? 'Menyimpan...' : 'Simpan'}</span>
+          </button>
+        </div>
       </form>
     </div>
   );
