@@ -48,7 +48,7 @@ export default function GudangLayout() {
     <div className="flex-1 flex flex-col">
       {/* Area konten fleksibel yang akan digulir */}
       <div className="flex-1">
-        <div className="container-app py-4 md:py-6 h-full">
+        <div className="container-app h-full">
           {renderPage()}
         </div>
       </div>
