@@ -1,10 +1,19 @@
 import { useState } from 'react';
 // Import icon yang diperlukan
-import { Package, Truck, DatabaseZap, DollarSign } from 'lucide-react';
+import { Package, Truck, DatabaseZap } from 'lucide-react';
 import BottomNav from '../components/owner/BottomNav.jsx';
 
-// Keterangan: Mengimpor komponen Database baru
+// Keterangan: Mengimpor komponen halaman gudang
 import Database from '../pages/owner/gudang/database/Database.jsx';
+import StokMasuk from '../pages/owner/gudang/stok_masuk/StokMasuk.jsx';
+
+// Keterangan: Komponen dummy untuk Stok
+const ProductList = () => (
+  <div>
+    <h2 className="text-xl font-bold">Daftar Produk</h2>
+    <p className="muted">Halaman ini menampilkan daftar semua produk.</p>
+  </div>
+);
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Gudang
 export default function GudangLayout() {
@@ -14,9 +23,8 @@ export default function GudangLayout() {
 
   // Daftar menu yang akan ditampilkan di navigasi bawah
   const gudangMenuItems = [
-    { key: 'productList', label: 'Produk', icon: Package },
+    { key: 'productList', label: 'Stok', icon: Package },
     { key: 'stockIn', label: 'Stok Masuk', icon: Truck },
-    { key: 'hargaJual', label: 'Harga Jual', icon: DollarSign },
     { key: 'database', label: 'Database', icon: DatabaseZap },
   ];
 
@@ -28,8 +36,11 @@ export default function GudangLayout() {
   
   // Fungsi untuk merender komponen halaman sesuai activeItem
   const renderPage = () => {
-    // Keterangan: Mengubah logika untuk merender komponen Database
     switch (activeItem) {
+      case 'productList':
+        return <ProductList />;
+      case 'stockIn':
+        return <StokMasuk />;
       case 'database':
         return <Database />;
       default:
