@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import Header from './Header.jsx';
-import TambahBarangBaru from './TambahBarangBaru.jsx';
+import Header from '/src/pages/owner/gudang/database/Header.jsx';
+import TambahBarangBaru from '/src/pages/owner/gudang/database/TambahBarangBaru.jsx';
 import { supabase } from '/supabaseClient.js';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2, Pencil } from 'lucide-react'; // Keterangan: Menambahkan ikon pensil
+import ConfirmationModal from '/src/components/modals/ConfirmationModal.jsx';
+import { deleteProduct } from '/src/utils/supabaseDb.js';
+import EditHargaModal from './modals/EditHargaModal.jsx'; // Keterangan: Impor modal edit harga
 
 export default function Database() {
   const [showTambahBarang, setShowTambahBarang] = useState(false);
@@ -10,6 +13,16 @@ export default function Database() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // State untuk modal konfirmasi hapus
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // State untuk modal edit harga
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState(null);
+
 
   // Keterangan: Fungsi untuk memformat angka menjadi format mata uang Rupiah
   const formatCurrency = (number) => {
@@ -19,62 +32,86 @@ export default function Database() {
       minimumFractionDigits: 0,
     }).format(number);
   };
+  
+  // Keterangan: Fungsi untuk mengambil data produk
+  const fetchProducts = async () => {
+    console.log('// Database: Memuat data produk, UOM, dan harga dari Supabase.');
+    setLoading(true);
+    
+    let query = supabase
+      .from('products')
+      .select(`
+        id,
+        name,
+        base_unit,
+        base_sku,
+        prices(id, sku, selling_price, uom_id),
+        uom(id, uom_name, uom_sku)
+      `)
+      .order('name', { ascending: true });
+    
+    if (searchTerm) {
+      query = query.filter('name', 'ilike', `%${searchTerm}%`);
+    }
+
+    const { data, error: fetchError } = await query;
+    
+    if (fetchError) {
+      console.error('// Database: Gagal memuat data produk.', fetchError);
+      setError(fetchError.message);
+    } else {
+      console.log('// Database: Data produk berhasil dimuat.', data);
+      setProducts(data);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    // Keterangan: Fungsi untuk mengambil data produk, UOM, dan harga dari Supabase
-    const fetchProducts = async () => {
-      console.log('// Database: Memuat data produk, UOM, dan harga dari Supabase.');
-      setLoading(true);
-      
-      // Keterangan: Query Supabase diperbarui untuk menyertakan filter berdasarkan `searchTerm`
-      let query = supabase
-        .from('products')
-        .select(`
-          id,
-          name,
-          base_unit,
-          base_sku,
-          prices(sku, selling_price, uom_id),
-          uom(id, uom_name, uom_sku)
-        `)
-        .order('name', { ascending: true }); // Mengurutkan berdasarkan nama produk secara ascending
-      
-      if (searchTerm) {
-        query = query.filter('name', 'ilike', `%${searchTerm}%`);
-        console.log('// Database: Menerapkan filter pencarian:', `%${searchTerm}%`);
-      }
-
-      const { data, error: fetchError } = await query;
-      
-      if (fetchError) {
-        console.error('// Database: Gagal memuat data produk.', fetchError);
-        setError(fetchError.message);
-      } else {
-        console.log('// Database: Data produk berhasil dimuat.', data);
-        setProducts(data);
-        if (data && data.length === 0) {
-          console.log('// Database: Data produk yang diterima kosong.');
-        } else {
-          console.log('// Database: Data produk yang diterima tidak kosong.');
-        }
-      }
-      setLoading(false);
-    };
-
-    // Keterangan: Jalankan ulang fetchProducts setiap kali `searchTerm` atau `showTambahBarang` berubah
     if (!showTambahBarang) {
       fetchProducts();
     }
   }, [showTambahBarang, searchTerm]);
 
-  const handleAddClick = () => {
-    setShowTambahBarang(true);
-    console.log('// Database: Mengaktifkan mode tambah barang.');
+  const handleAddClick = () => setShowTambahBarang(true);
+  const handleBack = () => setShowTambahBarang(false);
+
+  // Keterangan: Fungsi saat tombol hapus di klik
+  const handleDeleteClick = (product) => {
+    setProductToDelete(product);
+    setIsDeleteModalOpen(true);
+    console.log(`// Database: Membuka konfirmasi hapus untuk produk: ${product.name}`);
   };
 
-  const handleBack = () => {
-    setShowTambahBarang(false);
-    console.log('// Database: Kembali ke halaman utama database.');
+  // Keterangan: Fungsi untuk konfirmasi penghapusan
+  const handleConfirmDelete = async () => {
+    if (!productToDelete) return;
+    
+    setIsDeleting(true);
+    const { error: deleteError } = await deleteProduct(productToDelete.id);
+    
+    if (deleteError) {
+      setError(`Gagal menghapus produk: ${deleteError.message}`);
+    } else {
+      setProducts(prevProducts => prevProducts.filter(p => p.id !== productToDelete.id));
+    }
+    
+    setIsDeleting(false);
+    setIsDeleteModalOpen(false);
+    setProductToDelete(null);
+  };
+  
+  // Keterangan: Fungsi saat tombol edit diklik
+  const handleEditClick = (product) => {
+    setProductToEdit(product);
+    setIsEditModalOpen(true);
+    console.log(`// Database: Membuka modal edit harga untuk: ${product.name}`);
+  };
+
+  // Keterangan: Fungsi yang dipanggil setelah harga berhasil disimpan
+  const handleSaveSuccess = () => {
+    setIsEditModalOpen(false);
+    setProductToEdit(null);
+    fetchProducts(); // Muat ulang data untuk menampilkan harga terbaru
   };
 
   if (showTambahBarang) {
@@ -82,12 +119,9 @@ export default function Database() {
   }
 
   return (
-    // Keterangan: Container utama sebagai flexbox column
     <div className="flex flex-col h-full">
-      {/* Keterangan: Meneruskan state `searchTerm` dan `setSearchTerm` ke komponen Header */}
       <Header onAddClick={handleAddClick} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
       
-      {/* Keterangan: Konten utama mengambil sisa ruang (flex-1) dan memiliki scrollbar sendiri */}
       <div className="flex-1 overflow-y-auto pt-4 pb-20">
         {loading && (
           <div className="flex flex-col items-center justify-center p-4">
@@ -96,31 +130,44 @@ export default function Database() {
           </div>
         )}
 
-        {error && (
-          <div className="flex items-center justify-center p-4">
-            <p className="text-rose-500">Error: {error}</p>
-          </div>
-        )}
+        {error && <div className="p-4 text-rose-500 text-center">Error: {error}</div>}
 
         {!loading && !error && (
           <div className="space-y-4">
             {products.length === 0 ? (
-              <div className="flex items-center justify-center p-4">
-                <p className="text-slate-500">Tidak ada produk yang ditemukan.</p>
-              </div>
+              <div className="text-center p-4"><p className="text-slate-500">Tidak ada produk.</p></div>
             ) : (
               products.map((product) => {
                 const basePrice = product.prices?.find(p => p.uom_id === null);
                 return (
                   <div key={product.id} className="card p-4">
-                    <h3 className="font-semibold">{product.name}</h3>
-                    <p className="text-sm muted">SKU Dasar: {product.base_sku}</p>
-                    <p className="text-sm muted">Satuan Dasar: {product.base_unit}</p>
-                    <p className="text-sm muted">Harga Jual: {formatCurrency(basePrice?.selling_price || 0)}</p>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="font-semibold">{product.name}</h3>
+                            <p className="text-sm muted">SKU: {product.base_sku} ({product.base_unit})</p>
+                            <p className="text-sm muted">Harga: {formatCurrency(basePrice?.selling_price || 0)}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => handleEditClick(product)}
+                                className="icon-btn hover:bg-sky-50"
+                                title="Edit Harga Jual"
+                            >
+                                <Pencil className="w-4 h-4 text-sky-600" />
+                            </button>
+                            <button 
+                                onClick={() => handleDeleteClick(product)}
+                                className="icon-btn hover:bg-rose-50"
+                                title="Hapus Produk"
+                            >
+                                <Trash2 className="w-4 h-4 text-rose-500" />
+                            </button>
+                        </div>
+                    </div>
 
                     {product.uom && product.uom.length > 0 && (
-                      <div className="mt-4 text-sm">
-                        <span className="font-medium text-slate-700">Satuan UOM:</span>
+                      <div className="mt-4 pt-4 border-t border-slate-100 text-sm">
+                        <span className="font-medium text-slate-700">Satuan Lain:</span>
                         <ul className="space-y-2 mt-2">
                           {product.uom.map((uomItem) => {
                             const uomPrice = product.prices?.find(p => p.uom_id === uomItem.id);
@@ -128,7 +175,7 @@ export default function Database() {
                               <li key={uomItem.id} className="p-3 bg-slate-50 rounded-lg">
                                 <p className="font-semibold">{uomItem.uom_name}</p>
                                 <p className="text-sm muted">SKU: {uomItem.uom_sku}</p>
-                                <p className="text-sm muted">Harga Jual: {formatCurrency(uomPrice?.selling_price || 0)}</p>
+                                <p className="text-sm muted">Harga: {formatCurrency(uomPrice?.selling_price || 0)}</p>
                               </li>
                             );
                           })}
@@ -142,6 +189,26 @@ export default function Database() {
           </div>
         )}
       </div>
+      
+      {/* Modal Edit Harga */}
+      <EditHargaModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        product={productToEdit}
+        onSaveSuccess={handleSaveSuccess}
+      />
+      
+      {/* Modal Konfirmasi Hapus */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Produk"
+        message={`Yakin ingin menghapus "${productToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Ya, Hapus"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
+

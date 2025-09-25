@@ -1,29 +1,24 @@
 import { useState } from 'react';
 // Import icon yang diperlukan
 import { Package, Truck, DatabaseZap } from 'lucide-react';
-import BottomNav from '../components/owner/BottomNav.jsx';
+import BottomNav from '/src/components/owner/BottomNav.jsx';
 
 // Keterangan: Mengimpor komponen halaman gudang
-import Database from '../pages/owner/gudang/database/Database.jsx';
-import StokMasuk from '../pages/owner/gudang/stok_masuk/StokMasuk.jsx';
-
-// Keterangan: Komponen dummy untuk Stok
-const ProductList = () => (
-  <div>
-    <h2 className="text-xl font-bold">Daftar Produk</h2>
-    <p className="muted">Halaman ini menampilkan daftar semua produk.</p>
-  </div>
-);
+import Database from '/src/pages/owner/gudang/database/Database.jsx';
+import StokMasuk from '/src/pages/owner/gudang/stok_masuk/StokMasuk.jsx';
+import Stok from '/src/pages/owner/gudang/stok/Stok.jsx';
 
 // Layout khusus untuk semua halaman yang berhubungan dengan Gudang
 export default function GudangLayout() {
   // State untuk melacak item menu mana yang aktif di BottomNav
-  const [activeItem, setActiveItem] = useState('database');
+  // Keterangan: Mengubah item aktif default menjadi 'stok'
+  const [activeItem, setActiveItem] = useState('stok');
   console.log(`// GudangLayout: Rendering GudangLayout dengan item aktif: ${activeItem}`);
 
   // Daftar menu yang akan ditampilkan di navigasi bawah
+  // Keterangan: Mengubah key 'productList' menjadi 'stok'
   const gudangMenuItems = [
-    { key: 'productList', label: 'Stok', icon: Package },
+    { key: 'stok', label: 'Stok', icon: Package },
     { key: 'stockIn', label: 'Stok Masuk', icon: Truck },
     { key: 'database', label: 'Database', icon: DatabaseZap },
   ];
@@ -37,8 +32,9 @@ export default function GudangLayout() {
   // Fungsi untuk merender komponen halaman sesuai activeItem
   const renderPage = () => {
     switch (activeItem) {
-      case 'productList':
-        return <ProductList />;
+      // Keterangan: Merender komponen Stok yang baru
+      case 'stok':
+        return <Stok />;
       case 'stockIn':
         return <StokMasuk />;
       case 'database':
@@ -73,3 +69,4 @@ export default function GudangLayout() {
     </div>
   );
 }
+

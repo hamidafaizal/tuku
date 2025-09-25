@@ -52,13 +52,16 @@ export default function StokMasuk() {
   const [stockHistory, setStockHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Keterangan: State untuk menyimpan tanggal yang dipilih dari datepicker
+  const [selectedDate, setSelectedDate] = useState('');
 
   useEffect(() => {
-    // Keterangan: Memuat data riwayat stok saat halaman dimuat atau kembali dari TambahStok
+    // Keterangan: Memuat data riwayat stok saat halaman dimuat, kembali dari TambahStok, atau saat tanggal berubah
     const loadStockHistory = async () => {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await fetchStockHistory();
+      // Keterangan: Meneruskan tanggal yang dipilih ke fungsi fetch
+      const { data, error: fetchError } = await fetchStockHistory(selectedDate);
       if (fetchError) {
         console.error('// Stok Masuk: Gagal memuat riwayat stok.', fetchError);
         setError('Gagal memuat riwayat stok.');
@@ -72,7 +75,7 @@ export default function StokMasuk() {
     if (!showTambahStok) {
       loadStockHistory();
     }
-  }, [showTambahStok]);
+  }, [showTambahStok, selectedDate]); // Keterangan: `selectedDate` ditambahkan ke dependency array
 
   const handleAddClick = () => {
     setShowTambahStok(true);
@@ -90,7 +93,12 @@ export default function StokMasuk() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header onAddClick={handleAddClick} />
+      {/* Keterangan: Meneruskan state dan setter tanggal ke komponen Header */}
+      <Header 
+        onAddClick={handleAddClick} 
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+      />
       
       <div className="flex-1 overflow-y-auto pt-4 pb-20">
         <h3 className="font-bold text-lg mb-4">Riwayat Stok Masuk</h3>
@@ -111,7 +119,9 @@ export default function StokMasuk() {
           ) : (
             <div className="flex flex-col items-center justify-center p-4 text-center">
               <Package className="w-16 h-16 text-slate-300 mb-4" />
-              <p className="text-slate-500">Belum ada riwayat stok masuk.</p>
+              <p className="text-slate-500">
+                {selectedDate ? `Tidak ada riwayat untuk tanggal ${selectedDate}` : 'Belum ada riwayat stok masuk.'}
+              </p>
             </div>
           )
         )}

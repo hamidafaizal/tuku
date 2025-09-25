@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import HeaderTemplate from '/src/components/owner/HeaderTemplate.jsx';
 import { Plus, CalendarDays } from 'lucide-react';
 
-export default function HeaderStokMasuk({ onAddClick = () => {} }) {
-  const [selectedDate, setSelectedDate] = useState('');
+// Keterangan: Komponen sekarang menerima `selectedDate` dan `setSelectedDate` sebagai props
+export default function HeaderStokMasuk({ onAddClick = () => {}, selectedDate, setSelectedDate }) {
   console.log('// Stok Masuk: Merender Header untuk halaman Stok Masuk.');
 
   const handleDateChange = (e) => {
+    // Keterangan: Memanggil fungsi setter dari props untuk mengubah state di komponen induk
     setSelectedDate(e.target.value);
     console.log('Tanggal dipilih:', e.target.value);
   };
@@ -31,6 +32,7 @@ export default function HeaderStokMasuk({ onAddClick = () => {} }) {
           <input
             type="date"
             className="input text-sm w-fit"
+            // Keterangan: Nilai input dikontrol oleh prop `selectedDate`
             value={selectedDate}
             onChange={handleDateChange}
           />

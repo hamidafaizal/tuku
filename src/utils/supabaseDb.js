@@ -219,10 +219,11 @@ export async function updateHargaJual(updates) {
   return { success: true, error: null };
 }
 
-// Keterangan: Fungsi untuk mengambil riwayat stok dari database
-export async function fetchStockHistory() {
-  console.log('Mencoba mengambil riwayat stok dari database.');
-  const { data, error } = await supabase
+// Keterangan: Fungsi untuk mengambil riwayat stok dari database, dengan filter tanggal opsional
+export async function fetchStockHistory(selectedDate) {
+  console.log(`// supabaseDb: Mengambil riwayat stok untuk tanggal: ${selectedDate || 'Semua'}`);
+
+  let query = supabase
     .from('stock_history')
     .select(`
       id,
@@ -235,6 +236,21 @@ export async function fetchStockHistory() {
       uom(uom_name, quantity_per_uom)
     `)
     .order('created_at', { ascending: false });
+
+  // Keterangan: Tambahkan filter tanggal jika tanggal dipilih
+  if (selectedDate) {
+    const startDate = new Date(selectedDate);
+    startDate.setHours(0, 0, 0, 0); // Atur ke awal hari
+
+    const endDate = new Date(selectedDate);
+    endDate.setHours(23, 59, 59, 999); // Atur ke akhir hari
+
+    console.log(`// supabaseDb: Menerapkan filter rentang tanggal dari ${startDate.toISOString()} hingga ${endDate.toISOString()}`);
+
+    query = query.gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString());
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Gagal mengambil riwayat stok:', error);
@@ -261,6 +277,7 @@ export async function fetchStockHistory() {
   console.log('Riwayat stok berhasil diambil dan diformat:', formattedHistory);
   return { data: formattedHistory, error: null };
 }
+
 
 // Keterangan: Fungsi untuk mencari produk dan UOM-nya berdasarkan SKU
 export async function fetchProductBySku(sku) {
